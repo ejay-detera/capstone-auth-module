@@ -7,6 +7,7 @@ The Capstone Authentication Module is a robust, decoupled identity management an
 Identity management is a fundamental component of modern software architecture. This project provides a secure, scalable, and standardized authentication service. The system is architected as a decoupled solution comprising a backend service (auth-service) and a frontend administrative interface (web-interface).
 
 ### Core Objectives
+
 - Provide a secure and standardized authentication API.
 - Enable seamless user management via a modern web interface.
 - Implement production-grade infrastructure using containerization.
@@ -24,16 +25,19 @@ Detailed guides regarding the configuration, development, and contribution proce
 ## Features
 
 ### Identity Management
+
 - User account registration and lifecycle management.
 - Secure authentication and session workflows.
 - Planned: Automated password recovery and account verification.
 
 ### Security
+
 - Token-based authentication for stateless API interactions.
 - Cryptographic protection of sensitive data at rest.
 - Cross-Origin Resource Sharing (CORS) and security header enforcement.
 
 ### Infrastructure
+
 - Comprehensive containerization via Docker and Docker Compose.
 - Automated service orchestration and dependency management.
 - Integrated caching layer for optimized performance.
@@ -41,17 +45,20 @@ Detailed guides regarding the configuration, development, and contribution proce
 ## Tech Stack
 
 ### Backend
+
 - **Framework**: Laravel 13.x (PHP 8.3)
 - **Database**: MySQL 8.0
 - **Caching/Queue**: Redis (Alpine)
 - **Web Server**: Nginx
 
 ### Frontend
+
 - **Framework**: Vue 3 (Composition API)
 - **Build Tool**: Vite
 - **Language**: TypeScript
 
 ### Infrastructure
+
 - **Orchestration**: Docker Compose
 - **Process Management**: Supervisor
 
@@ -67,12 +74,14 @@ The project utilizes a decoupled client-server architecture to ensure strict sep
 ## Installation Guide
 
 ### Prerequisites
+
 - Docker Desktop
 - Git
 
 ### Environment Configuration
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/your-repo/capstone-auth-module.git
    cd capstone-auth-module
@@ -88,11 +97,13 @@ The project utilizes a decoupled client-server architecture to ensure strict sep
 ### Deployment via Docker
 
 1. Build and initialize services:
+
    ```bash
    docker compose up -d --build
    ```
 
 2. Generate the application encryption key:
+
    ```bash
    docker exec -it auth-service php artisan key:generate
    ```
@@ -105,10 +116,12 @@ The project utilizes a decoupled client-server architecture to ensure strict sep
 ## Running the Project
 
 ### Service Access
+
 - **Frontend**: [http://localhost:8080](http://localhost:8080)
 - **Backend API**: [http://localhost:8000](http://localhost:8000)
 
 ### Administration
+
 - **Log Monitoring**: `docker compose logs -f`
 - **Service Termination**: `docker compose down`
 - **Container Access**: `docker exec -it auth-service sh`
@@ -135,10 +148,12 @@ The project utilizes a decoupled client-server architecture to ensure strict sep
 ## Security Standards
 
 ### Data Protection
+
 - **Encryption**: Sensitive data is protected using AES-256-CBC via Laravel's encryption services.
 - **Hashing**: Password security is enforced using Argon2 or Bcrypt.
 
 ### Network Security
+
 - **Reverse Proxy**: Nginx handles request routing and SSL termination (if configured).
 - **Isolation**: Internal services are isolated within a private Docker network.
 
@@ -147,6 +162,7 @@ The project utilizes a decoupled client-server architecture to ensure strict sep
 The project employs PHPUnit for backend verification and Vitest for frontend validation.
 
 ### Backend Execution
+
 ```bash
 docker exec -it auth-service php artisan test
 ```
@@ -154,13 +170,17 @@ docker exec -it auth-service php artisan test
 ## Troubleshooting
 
 ### Missing Application Key
+
 If a `MissingAppKeyException` occurs, execute:
+
 ```bash
 docker exec -it auth-service php artisan key:generate
 ```
 
 ### Database Connectivity
+
 Verify the status of the database container:
+
 ```bash
 docker compose ps
 ```
@@ -168,7 +188,3 @@ docker compose ps
 ## License
 
 This project is licensed under the MIT License.
-
-## Authors
-
-- **Antigravity Engineering** - *System Architecture and Infrastructure*
