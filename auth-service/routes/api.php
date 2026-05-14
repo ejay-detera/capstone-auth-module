@@ -29,7 +29,13 @@ Route::middleware(['auth:sanctum', 'active.session', 'can:manage-roles'])->prefi
     Route::patch('users/{id}/role', [App\Http\Controllers\RoleController::class, 'assignRole']);
     
     // Permission Management
-    Route::get('permissions', [App\Http\Controllers\PermissionController::class, 'index']);
+    Route::apiResource('permissions', App\Http\Controllers\PermissionController::class);
+    Route::get('permissions/{id}/roles', [App\Http\Controllers\PermissionController::class, 'getRoles']);
+    Route::post('permissions/{id}/roles', [App\Http\Controllers\PermissionController::class, 'syncRoles']);
     Route::get('roles/{id}/permissions', [App\Http\Controllers\RoleController::class, 'permissions']);
     Route::post('roles/{id}/permissions', [App\Http\Controllers\RoleController::class, 'syncPermissions']);
+});
+
+Route::middleware(['auth:sanctum', 'active.session'])->group(function () {
+    Route::get('users/{id}/permissions', [App\Http\Controllers\AdminUserController::class, 'getUserPermissions']);
 });

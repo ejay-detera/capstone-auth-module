@@ -114,7 +114,7 @@ class RoleController extends Controller
             $profile->update(['role_id' => $role->id]);
 
             // Invalidate permission cache
-            Cache::forget("permissions:user:{$user->id}");
+            Cache::store('database')->forget("permissions:user:{$user->id}");
 
             $this->logAudit($request, 'ROLE_ASSIGNED', "Assigned role {$role->name} to user {$user->username} (was {$oldRoleName})");
 
@@ -156,7 +156,7 @@ class RoleController extends Controller
         })->pluck('id');
 
         foreach ($userIds as $userId) {
-            Cache::forget("permissions:user:{$userId}");
+            Cache::store('database')->forget("permissions:user:{$userId}");
         }
 
         $this->logAudit($request, 'ROLE_PERMISSIONS_UPDATED', "Updated permissions for role: {$role->name}");

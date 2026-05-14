@@ -8,7 +8,8 @@ import {
   Bell,
   Search,
   UserPlus,
-  Shield
+  Shield,
+  Key
 } from 'lucide-vue-next'
 
 import { onMounted, onUnmounted } from 'vue'
@@ -99,6 +100,15 @@ onUnmounted(() => {
         >
           <Shield :size="20" class="group-hover:scale-110 transition-transform" />
           Role Management
+        </router-link>
+
+        <router-link 
+          to="/admin/permissions" 
+          class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all group"
+          active-class="bg-slate-900 !text-white shadow-lg shadow-slate-900/10"
+        >
+          <Key :size="20" class="group-hover:scale-110 transition-transform" />
+          Permission Management
         </router-link>
       </nav>
 

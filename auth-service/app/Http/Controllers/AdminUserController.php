@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
 
 class AdminUserController extends Controller
 {
@@ -109,6 +110,24 @@ class AdminUserController extends Controller
     {
         return Cache::remember('departments:all', 3600, function() {
             return \App\Models\Department::all();
+        });
+    }
+
+    public function getUserPermissions($id)
+    {
+        // For security, only allow the user to see their own permissions or admins to see anyone's
+        if (auth()->id() != $id && Gate::denies('manage-users')) {
+            abort(403, 'Unauthorized.');
+        }
+
+        return \Illuminate\Support\Facades\Cache::store('database')->remember("permissions:user:{$id}", 300, function () use ($id) {
+            $user = User::with('profile.role.permissions')->findOrFail($id);
+            
+            if (!$user->profile || !$user->profile->role) {
+                return [];
+            }
+
+            return $user->profile->role->permissions->pluck('slug')->toArray();
         });
     }
 

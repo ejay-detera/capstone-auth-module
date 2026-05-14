@@ -37,6 +37,11 @@ const routes = [
         path: 'roles',
         name: 'admin-role-management',
         component: () => import('../components/RoleManagement.vue')
+      },
+      {
+        path: 'permissions',
+        name: 'admin-permission-management',
+        component: () => import('../components/PermissionManagement.vue')
       }
     ]
   }
