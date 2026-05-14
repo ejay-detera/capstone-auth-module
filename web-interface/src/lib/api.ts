@@ -25,4 +25,21 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Global response interceptor for session expiration
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear all auth data
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('session_id')
+      localStorage.removeItem('user')
+      
+      // Redirect to login
+      window.location.href = '/'
+    }
+    return Promise.reject(error)
+  }
+)
+
 export default api

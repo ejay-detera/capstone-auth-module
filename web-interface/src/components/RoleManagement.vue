@@ -9,7 +9,9 @@ import {
   Shield,
   X,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Key,
+  Check
 } from 'lucide-vue-next'
 import api from '@/lib/api'
 
@@ -35,12 +37,63 @@ const showModal = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
 const submitting = ref(false)
 const error = ref('')
-
 const form = ref({
   id: null as number | null,
   name: '',
   description: ''
 })
+
+const showPermissionModal = ref(false)
+const allPermissions = ref<any[]>([])
+const selectedRole = ref<Role | null>(null)
+const rolePermissions = ref<number[]>([])
+const loadingPermissions = ref(false)
+
+const fetchAllPermissions = async () => {
+  try {
+    const response = await api.get('/api/admin/permissions')
+    allPermissions.value = response.data
+  } catch (err) {
+    console.error('Failed to fetch permissions', err)
+  }
+}
+
+const openPermissionModal = async (role: Role) => {
+  selectedRole.value = role
+  showPermissionModal.value = true
+  loadingPermissions.value = true
+  rolePermissions.value = []
+  error.value = ''
+  
+  try {
+    if (allPermissions.value.length === 0) {
+      await fetchAllPermissions()
+    }
+    const response = await api.get(`/api/admin/roles/${role.id}/permissions`)
+    rolePermissions.value = response.data
+  } catch (err: any) {
+    console.error('Failed to fetch role permissions', err)
+    error.value = 'Failed to load permissions'
+  } finally {
+    loadingPermissions.value = false
+  }
+}
+
+const handleSyncPermissions = async () => {
+  if (!selectedRole.value) return
+  submitting.value = true
+  error.value = ''
+  try {
+    await api.post(`/api/admin/roles/${selectedRole.value.id}/permissions`, {
+      permissions: rolePermissions.value
+    })
+    showPermissionModal.value = false
+  } catch (err: any) {
+    error.value = err.response?.data?.message || 'Failed to update permissions'
+  } finally {
+    submitting.value = false
+  }
+}
 
 const fetchRoles = async () => {
   loading.value = true
@@ -198,6 +251,13 @@ onMounted(fetchRoles)
               <td class="px-6 py-4 text-right">
                 <div class="flex items-center justify-end gap-2">
                   <button 
+                    @click="openPermissionModal(role)"
+                    class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                    title="Manage Permissions"
+                  >
+                    <Key :size="16" />
+                  </button>
+                  <button 
                     @click="openEditModal(role)"
                     class="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
                     title="Edit Role"
@@ -216,6 +276,87 @@ onMounted(fetchRoles)
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Permission Management Modal -->
+    <div v-if="showPermissionModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showPermissionModal = false"></div>
+      
+      <div class="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Manage Permissions</h2>
+            <p class="text-sm text-slate-500 font-medium">Role: <span class="text-indigo-600">{{ selectedRole?.name }}</span></p>
+          </div>
+          <button @click="showPermissionModal = false" class="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+            <X :size="20" />
+          </button>
+        </div>
+
+        <div class="p-6">
+          <div v-if="loadingPermissions" class="py-12 flex flex-col items-center justify-center gap-4 text-slate-500">
+            <Loader2 class="animate-spin" :size="32" />
+            <p class="font-medium">Loading permissions...</p>
+          </div>
+
+          <div v-else class="space-y-6">
+            <div v-if="error" class="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm font-medium">
+              <AlertCircle :size="18" />
+              {{ error }}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label 
+                v-for="permission in allPermissions" 
+                :key="permission.id"
+                class="relative flex items-start gap-3 p-4 rounded-2xl border-2 transition-all cursor-pointer group"
+                :class="rolePermissions.includes(permission.id) 
+                  ? 'border-indigo-600 bg-indigo-50/30' 
+                  : 'border-slate-100 hover:border-slate-200 bg-white'"
+              >
+                <div class="mt-0.5">
+                  <div 
+                    class="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all"
+                    :class="rolePermissions.includes(permission.id)
+                      ? 'bg-indigo-600 border-indigo-600 text-white'
+                      : 'border-slate-300 bg-white group-hover:border-slate-400'"
+                  >
+                    <Check v-if="rolePermissions.includes(permission.id)" :size="14" stroke-width="3" />
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    :value="permission.id" 
+                    v-model="rolePermissions"
+                    class="sr-only"
+                  />
+                </div>
+                <div>
+                  <p class="text-sm font-bold text-slate-900">{{ permission.name }}</p>
+                  <p class="text-[11px] text-slate-500 leading-tight mt-0.5">{{ permission.description || 'No description available' }}</p>
+                </div>
+              </label>
+            </div>
+
+            <div class="pt-4 flex gap-3">
+              <button 
+                type="button" 
+                @click="showPermissionModal = false"
+                class="flex-1 px-6 py-3 border-2 border-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                @click="handleSyncPermissions"
+                :disabled="submitting"
+                class="flex-1 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20"
+              >
+                <Loader2 v-if="submitting" class="animate-spin" :size="18" />
+                {{ submitting ? 'Updating...' : 'Save Permissions' }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

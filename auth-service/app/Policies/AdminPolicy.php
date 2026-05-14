@@ -24,7 +24,7 @@ class AdminPolicy
         $hasPermission = \Illuminate\Support\Facades\DB::table('role_permission')
             ->join('permissions', 'role_permission.permission_id', '=', 'permissions.id')
             ->where('role_permission.role_id', $user->profile->role_id)
-            ->where('permissions.slug', 'manage-users')
+            ->where('permissions.slug', 'manage_users')
             ->exists();
 
         return $hasPermission;

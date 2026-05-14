@@ -15,7 +15,7 @@ class RoleController extends Controller
     public function index()
     {
         Gate::authorize('manage-roles');
-        return Cache::tags(['roles'])->remember('roles:list', 3600, function () {
+        return Cache::remember('roles:list', 3600, function () {
             return Role::withCount('users')->get();
         });
     }
@@ -30,7 +30,7 @@ class RoleController extends Controller
         ]);
 
         $role = Role::create($validated);
-        Cache::tags(['roles'])->flush();
+        Cache::forget('roles:list');
 
         $this->logAudit($request, 'ROLE_CREATED', "Created role: {$role->name}");
 
@@ -55,7 +55,7 @@ class RoleController extends Controller
         ]);
 
         $role->update($validated);
-        Cache::tags(['roles'])->flush();
+        Cache::forget('roles:list');
 
         $this->logAudit($request, 'ROLE_UPDATED', "Updated role: {$role->name}");
 
@@ -77,7 +77,7 @@ class RoleController extends Controller
 
         $roleName = $role->name;
         $role->delete();
-        Cache::tags(['roles'])->flush();
+        Cache::forget('roles:list');
 
         $this->logAudit($request, 'ROLE_DELETED', "Deleted role: {$roleName}");
 
@@ -129,6 +129,39 @@ class RoleController extends Controller
             DB::rollBack();
             return response()->json(['message' => 'Failed to assign role.', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    public function permissions($id)
+    {
+        Gate::authorize('manage-roles');
+        $role = Role::findOrFail($id);
+        return response()->json($role->permissions()->pluck('id'));
+    }
+
+    public function syncPermissions(Request $request, $id)
+    {
+        Gate::authorize('manage-roles');
+        $role = Role::findOrFail($id);
+        
+        $request->validate([
+            'permissions' => 'present|array',
+            'permissions.*' => 'exists:permissions,id'
+        ]);
+
+        $role->permissions()->sync($request->permissions);
+        
+        // Invalidate permission cache for all users with this role
+        $userIds = User::whereHas('profile', function($q) use ($id) {
+            $q->where('role_id', $id);
+        })->pluck('id');
+
+        foreach ($userIds as $userId) {
+            Cache::forget("permissions:user:{$userId}");
+        }
+
+        $this->logAudit($request, 'ROLE_PERMISSIONS_UPDATED', "Updated permissions for role: {$role->name}");
+
+        return response()->json(['message' => 'Permissions updated successfully.']);
     }
 
     private function logAudit(Request $request, $action, $description)

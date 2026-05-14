@@ -27,4 +27,9 @@ Route::middleware(['auth:sanctum', 'active.session', 'can:manage-roles'])->prefi
     Route::apiResource('roles', App\Http\Controllers\RoleController::class);
     Route::get('roles/{id}/users', [App\Http\Controllers\RoleController::class, 'users']);
     Route::patch('users/{id}/role', [App\Http\Controllers\RoleController::class, 'assignRole']);
+    
+    // Permission Management
+    Route::get('permissions', [App\Http\Controllers\PermissionController::class, 'index']);
+    Route::get('roles/{id}/permissions', [App\Http\Controllers\RoleController::class, 'permissions']);
+    Route::post('roles/{id}/permissions', [App\Http\Controllers\RoleController::class, 'syncPermissions']);
 });

@@ -11,14 +11,41 @@ import {
   Shield
 } from 'lucide-vue-next'
 
+import { onMounted, onUnmounted } from 'vue'
+
 const router = useRouter()
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 
 const handleLogout = () => {
   localStorage.removeItem('access_token')
+  localStorage.removeItem('session_id')
   localStorage.removeItem('user')
   router.push('/')
 }
+
+// Idle logout logic (2 hours)
+const IDLE_TIMEOUT = 2 * 60 * 60 * 1000
+let idleTimer: any = null
+
+const resetIdleTimer = () => {
+  if (idleTimer) clearTimeout(idleTimer)
+  idleTimer = setTimeout(() => {
+    console.log('User idle for 2 hours, logging out...')
+    handleLogout()
+  }, IDLE_TIMEOUT)
+}
+
+onMounted(() => {
+  const events = ['mousemove', 'keydown', 'click', 'scroll', 'mousedown', 'touchstart']
+  events.forEach(event => window.addEventListener(event, resetIdleTimer))
+  resetIdleTimer()
+})
+
+onUnmounted(() => {
+  const events = ['mousemove', 'keydown', 'click', 'scroll', 'mousedown', 'touchstart']
+  events.forEach(event => window.removeEventListener(event, resetIdleTimer))
+  if (idleTimer) clearTimeout(idleTimer)
+})
 </script>
 
 <template>

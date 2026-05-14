@@ -30,6 +30,16 @@ class CheckActiveSession
             return response()->json(['message' => 'Session is inactive or invalid.'], 401);
         }
 
+        // Check for 2-hour inactivity (120 minutes)
+        $lastActive = \Carbon\Carbon::parse($session->last_active_at);
+        if ($lastActive->diffInMinutes(now()) > 120) {
+            DB::table('user_sessions')->where('session_id', $sessionId)->update(['is_active' => false]);
+            return response()->json(['message' => 'Session expired due to inactivity.'], 401);
+        }
+
+        // Update last active timestamp
+        DB::table('user_sessions')->where('session_id', $sessionId)->update(['last_active_at' => now()]);
+
         $user = $request->user();
 
         if (!$user || !$user->is_active) {

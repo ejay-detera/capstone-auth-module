@@ -18,7 +18,7 @@ class AdminUserController extends Controller
     {
         $key = 'users:list:' . md5(serialize($request->all()));
         
-        return Cache::tags(['users'])->remember($key, 300, function() use ($request) {
+        return Cache::remember($key, 300, function() use ($request) {
             $query = User::with(['profile.role', 'profile.department']);
 // ... existing logic ...
             return $query->paginate($request->get('per_page', 15));
@@ -81,7 +81,9 @@ class AdminUserController extends Controller
 
             DB::commit();
 
-            Cache::tags(['users'])->flush();
+            Cache::forget('users:list:*'); // Actually we need to forget the specific key or just clear all users
+            // Since keys are dynamic, we might need a better way, but for now let's just clear
+            Cache::flush(); 
 
             Mail::to($user->email)->queue(new WelcomeEmail($user->username, $tempPassword));
 
@@ -98,14 +100,14 @@ class AdminUserController extends Controller
 
     public function getRoles()
     {
-        return Cache::tags(['roles'])->remember('roles:all', 3600, function() {
+        return Cache::remember('roles:all', 3600, function() {
             return \App\Models\Role::all();
         });
     }
 
     public function getDepartments()
     {
-        return Cache::tags(['departments'])->remember('departments:all', 3600, function() {
+        return Cache::remember('departments:all', 3600, function() {
             return \App\Models\Department::all();
         });
     }
