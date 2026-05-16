@@ -24,7 +24,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - capstone-network
+      - shared-capstone-network
 
   queue-worker:
     build:
@@ -58,21 +58,21 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - capstone-network
+      - shared-capstone-network
 
   web-interface:
     build:
       context: ./web-interface
       dockerfile: Dockerfile
     container_name: web-interface
-    ports:
-      - "5173:5173"
+    expose:
+      - "5000"
     volumes:
       - ./web-interface:/app
     depends_on:
       - auth-service
     networks:
-      - capstone-network
+      - shared-capstone-network
 
   db:
     image: mysql:8.0
@@ -90,7 +90,7 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - capstone-network
+      - shared-capstone-network
 
   redis:
     image: redis:alpine
@@ -101,11 +101,23 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - capstone-network
+      - shared-capstone-network
+
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: shared-nginx-proxy
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web-interface
+    networks:
+      - shared-capstone-network
 
 networks:
-  capstone-network:
-    driver: bridge
+  shared-capstone-network:
+    external: true
 
 volumes:
   mysql-data:

@@ -34,7 +34,7 @@ class AuthController extends Controller
             ], 429);
         }
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::with(['profile.role', 'profile.department'])->where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->credentials->password_hash)) {
             RateLimiter::hit($throttleKey, 900); // 15 minutes lockout

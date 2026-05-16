@@ -57,7 +57,7 @@ onUnmounted(() => {
       <div class="p-6 border-b border-slate-100">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
-            <span class="text-white font-bold text-xl">A</span>
+            <span class="text-white font-bold text-xl">{{ user?.email?.substring(0, 1).toUpperCase() || 'U' }}</span>
           </div>
           <div>
             <h2 class="font-bold text-slate-900 leading-none">Demo Frontend</h2>
@@ -156,11 +156,11 @@ onUnmounted(() => {
           
           <div class="flex items-center gap-3">
             <div class="text-right hidden sm:block">
-              <p class="text-sm font-bold text-slate-900 leading-none">{{ user.email }}</p>
-              <p class="text-[11px] text-slate-500 font-medium mt-1">IT Administrator</p>
+              <p class="text-sm font-bold text-slate-900 leading-none">{{ user?.email || 'User' }}</p>
+              <p class="text-[11px] text-slate-500 font-medium mt-1">{{ user?.profile?.role?.name || user?.role || 'Unknown Role' }}</p>
             </div>
             <div class="w-10 h-10 bg-gradient-to-tr from-slate-200 to-slate-100 rounded-xl border border-slate-200 flex items-center justify-center font-bold text-slate-700 shadow-sm">
-              {{ user.email?.substring(0, 2).toUpperCase() }}
+              {{ user?.email?.substring(0, 2).toUpperCase() || 'U' }}
             </div>
           </div>
         </div>

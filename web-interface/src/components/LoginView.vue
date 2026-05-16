@@ -33,8 +33,22 @@ const handleLogin = async () => {
     localStorage.setItem('session_id', session_id)
     localStorage.setItem('user', JSON.stringify(user))
     
-    // Redirect to admin dashboard
-    router.push('/admin')
+    const roleName = user.profile?.role?.name || user.role || ''
+
+    if (roleName === 'IT Admin') {
+      router.push('/admin')
+    } else if (roleName === 'Admin') {
+      window.location.href = '/crms/admin/dashboard'
+    } else if (roleName === 'Manager') {
+      window.location.href = '/crms/manager/dashboard'
+    } else if (roleName === 'Sales' || roleName === 'Employee') {
+      window.location.href = '/crms/sales/dashboard'
+    } else {
+      generalError.value = 'Unrecognized role. Please contact IT Support.'
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('session_id')
+      localStorage.removeItem('user')
+    }
   } catch (error: any) {
     if (error.response) {
       if (error.response.status === 422) {

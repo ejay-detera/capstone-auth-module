@@ -17,7 +17,10 @@ class RolePermissionSeeder extends Seeder
         $roles = [
             ['name' => 'Super Admin',         'description' => 'System wide access'],
             ['name' => 'IT Admin',            'description' => 'IT infrastructure and user management'],
-            ['name' => 'Department Manager',  'description' => 'Management of specific department'],
+            ['name' => 'Admin',               'description' => 'General administration'],
+            ['name' => 'Manager',             'description' => 'Management of specific department'],
+            ['name' => 'Sales',               'description' => 'Sales staff access'],
+            ['name' => 'Finance',             'description' => 'Finance staff access'],
             ['name' => 'Employee',            'description' => 'Regular staff access'],
         ];
 
