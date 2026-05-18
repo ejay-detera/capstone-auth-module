@@ -1,70 +1,75 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg border border-gray-100">
-      <div class="text-center">
-        <div v-if="status === 'loading'" class="flex flex-col items-center">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-          <h2 class="text-2xl font-bold text-gray-900">Verifying your email...</h2>
-        </div>
+  <div class="verification-wrapper">
+    <div class="modal-box">
+      <div class="modal-content animate-in">
 
-        <div v-if="status === 'success'" class="space-y-4">
-          <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 text-green-600">
-            <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
+        <!-- Loading State -->
+        <template v-if="status === 'loading'">
+          <div class="otp-icon-wrap">
+            <Loader2 :size="38" class="otp-icon animate-spin" />
           </div>
-          <h2 class="text-3xl font-extrabold text-gray-900">Email Verified!</h2>
-          <p class="text-gray-600">Your email has been successfully verified. You can now access all features.</p>
-          <router-link to="/" class="inline-block px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-200">
+          <h2 class="modal-title">Verifying Email...</h2>
+          <p class="modal-subtitle">Please wait while we confirm your email address.</p>
+        </template>
+
+        <!-- Success State -->
+        <template v-else-if="status === 'success'">
+          <div class="success-icon-wrap">
+            <CheckCircle2 :size="32" class="success-icon" />
+          </div>
+          <h2 class="modal-title">Email Verified!</h2>
+          <p class="modal-subtitle">Your email has been successfully verified. You can now access all features.</p>
+          <router-link to="/" class="modal-btn" style="text-decoration: none;">
             Go to Dashboard
           </router-link>
-        </div>
+        </template>
 
-        <div v-if="status === 'expired'" class="space-y-4">
-          <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 text-red-600">
-            <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <!-- Expired State -->
+        <template v-else-if="status === 'expired'">
+          <div class="error-icon-wrap">
+            <XCircle :size="32" class="error-icon" />
           </div>
-          <h2 class="text-3xl font-extrabold text-gray-900">Link Expired</h2>
-          <p class="text-gray-600">This verification link has expired or is invalid.</p>
+          <h2 class="modal-title">Link Expired</h2>
+          <p class="modal-subtitle">This verification link has expired or is invalid.</p>
+          
           <button 
             @click="resendVerification" 
+            class="modal-btn"
             :disabled="resending"
-            class="w-full px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-200 disabled:opacity-50"
           >
+            <Loader2 v-if="resending" class="btn-spinner animate-spin" />
             {{ resending ? 'Sending...' : 'Resend Verification Email' }}
           </button>
-          <p v-if="resendMessage" :class="resendError ? 'text-red-500' : 'text-green-500'" class="text-sm mt-2">
+          
+          <p v-if="resendMessage" :class="resendError ? 'text-error' : 'text-success'" class="status-msg">
             {{ resendMessage }}
           </p>
-        </div>
+        </template>
 
-        <div v-if="status === 'already-verified'" class="space-y-4">
-          <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-600">
-            <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <!-- Already Verified State -->
+        <template v-else-if="status === 'already-verified'">
+          <div class="info-icon-wrap">
+            <Info :size="32" class="info-icon" />
           </div>
-          <h2 class="text-3xl font-extrabold text-gray-900">Already Verified</h2>
-          <p class="text-gray-600">Your email is already verified. You're all set!</p>
-          <router-link to="/" class="inline-block px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-200">
+          <h2 class="modal-title">Already Verified</h2>
+          <p class="modal-subtitle">Your email is already verified. You're all set!</p>
+          <router-link to="/" class="modal-btn" style="text-decoration: none;">
             Go to Dashboard
           </router-link>
-        </div>
+        </template>
 
-        <div v-if="status === 'error'" class="space-y-4">
-          <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 text-red-600">
-            <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+        <!-- Error State -->
+        <template v-else-if="status === 'error'">
+          <div class="error-icon-wrap">
+            <XCircle :size="32" class="error-icon" />
           </div>
-          <h2 class="text-3xl font-extrabold text-gray-900">Verification Failed</h2>
-          <p class="text-gray-600">{{ errorMessage || 'An unexpected error occurred.' }}</p>
-          <router-link to="/" class="inline-block px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-200">
+          <h2 class="modal-title">Verification Failed</h2>
+          <p class="modal-subtitle">{{ errorMessage || 'An unexpected error occurred.' }}</p>
+          <router-link to="/" class="modal-btn modal-btn-secondary" style="text-decoration: none;">
             Back to Home
           </router-link>
-        </div>
+        </template>
+
       </div>
     </div>
   </div>
@@ -74,6 +79,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import { Loader2, CheckCircle2, XCircle, Info } from 'lucide-vue-next'
 
 const route = useRoute()
 const status = ref<'loading' | 'success' | 'expired' | 'already-verified' | 'error'>('loading')
@@ -130,3 +136,165 @@ onMounted(() => {
   verifyEmail()
 })
 </script>
+
+<style scoped>
+.verification-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f4f8;
+  padding: 16px;
+}
+
+.modal-box {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(37, 37, 120, 0.18);
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 40px 36px;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+  animation: slideUp 0.22s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(18px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.animate-in {
+  animation: zoomIn 0.3s ease;
+}
+
+@keyframes zoomIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Icon Wrappers */
+.otp-icon-wrap {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(37, 37, 120, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+.otp-icon { color: #252578; }
+
+.success-icon-wrap {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #d1fae5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+.success-icon { color: #059669; }
+
+.error-icon-wrap {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #fee2e2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+.error-icon { color: #dc2626; }
+
+.info-icon-wrap {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #dbeafe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+.info-icon { color: #2563eb; }
+
+/* Text Styles */
+.modal-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #252578;
+  margin: 0 0 10px 0;
+  line-height: 1.2;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 22px 0;
+  line-height: 1.6;
+}
+
+/* Button Styles */
+.modal-btn {
+  width: 100%;
+  padding: 14px;
+  background: #252578;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: "Poppins", sans-serif;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.modal-btn:hover:not(:disabled) { opacity: 0.88; }
+.modal-btn:disabled {
+  background: #9999bb;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.modal-btn-secondary {
+  background: #64748b;
+}
+
+.btn-spinner {
+  width: 20px;
+  height: 20px;
+  color: white;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.status-msg {
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 14px;
+}
+.text-error { color: #dc2626; }
+.text-success { color: #059669; }
+</style>

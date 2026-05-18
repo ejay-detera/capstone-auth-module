@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import api from '@/lib/api'
-import { Loader2, ArrowLeft } from 'lucide-vue-next'
+import { CheckCircle2, Mail, X } from 'lucide-vue-next'
 
+// ── Emits ─────────────────────────────────────────────────────────────────────
+const emit = defineEmits<{ (e: 'close'): void }>()
+const closeModal = () => emit('close')
+
+// ── State ─────────────────────────────────────────────────────────────────────
 const email = ref('')
 const isLoading = ref(false)
 const message = ref('')
@@ -25,47 +30,270 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-slate-50 px-4 font-sans">
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-10 transform transition-all">
-      <div class="mb-8">
-        <router-link to="/" class="inline-flex items-center text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors">
-          <ArrowLeft class="mr-2 h-4 w-4" />
-          Back to login
-        </router-link>
-        <h1 class="text-3xl font-bold tracking-tight text-slate-900">Forgot password?</h1>
-        <p class="text-slate-500 mt-2">Enter your email and we'll send you a reset link.</p>
-      </div>
+  <!-- Backdrop -->
+  <div class="modal-backdrop" @click.self="closeModal">
 
-      <form @submit.prevent="handleSubmit" class="space-y-6">
-        <div class="space-y-2">
-          <label for="email" class="text-sm font-semibold text-slate-700">Email Address</label>
+    <!-- Modal box -->
+    <div class="modal-box" role="dialog" aria-modal="true">
+
+      <!-- Close button -->
+      <button class="modal-close" @click="closeModal" aria-label="Close modal">
+        <X :size="18" />
+      </button>
+
+      <!-- ── Success state ── -->
+      <template v-if="message">
+        <div class="modal-content modal-content--left">
+          <div class="success-icon-wrap">
+            <CheckCircle2 :size="32" class="success-icon" />
+          </div>
+          <h2 class="modal-title">Reset Link Sent!</h2>
+          <p class="modal-subtitle">{{ message }}</p>
+          <div class="success-actions">
+            <button class="modal-btn modal-btn--auto" @click="closeModal">
+              Back to Login
+            </button>
+          </div>
+        </div>
+      </template>
+
+      <!-- ── Email entry ── -->
+      <template v-else>
+        <div class="modal-content">
+
+          <!-- Mail icon -->
+          <div class="otp-icon-wrap">
+            <Mail :size="38" class="otp-icon" />
+          </div>
+
+          <h2 class="modal-title">Forgot Password?</h2>
+          <p class="modal-subtitle">
+            Enter your registered email address and we'll send you a reset link.
+          </p>
+
+          <div v-if="error" class="modal-error" role="alert">{{ error }}</div>
+
           <input
-            id="email"
+            id="fp-email"
             v-model="email"
             type="email"
-            placeholder="name@example.com"
-            class="flex h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+            placeholder="Email address"
+            class="modal-input"
+            :class="{ 'modal-input--error': error }"
             required
           />
-        </div>
 
-        <div v-if="message" class="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-sm font-medium text-emerald-700 animate-in fade-in slide-in-from-top-1">
-          {{ message }}
-        </div>
+          <button
+            class="modal-btn"
+            :disabled="isLoading"
+            @click="handleSubmit"
+          >
+            <span v-if="isLoading" class="btn-spinner" />
+            {{ isLoading ? 'Sending Link...' : 'Send Reset Link' }}
+          </button>
 
-        <div v-if="error" class="p-4 rounded-xl bg-red-50 border border-red-100 text-sm font-medium text-red-700 animate-in fade-in slide-in-from-top-1">
-          {{ error }}
         </div>
+      </template>
 
-        <button
-          type="submit"
-          :disabled="isLoading || !!message"
-          class="w-full h-12 inline-flex items-center justify-center rounded-xl bg-slate-900 text-slate-50 font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-slate-900/10"
-        >
-          <Loader2 v-if="isLoading" class="mr-2 h-5 w-5 animate-spin" />
-          {{ isLoading ? 'Sending Link...' : 'Send Reset Link' }}
-        </button>
-      </form>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* ── Backdrop ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 40, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.18s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Modal box ── */
+.modal-box {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(37, 37, 120, 0.18);
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  padding: 40px 40px 36px;
+  box-sizing: border-box;
+  animation: slideUp 0.22s ease;
+  font-family: "Poppins", sans-serif;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(18px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Close button ── */
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.modal-close:hover { color: #252578; }
+
+/* ── Content ── */
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.modal-content--left {
+  align-items: flex-start;
+  text-align: left;
+}
+
+/* ── Mail icon ── */
+.otp-icon-wrap {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(37, 37, 120, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.otp-icon { color: #252578; }
+
+/* ── Title / subtitle ── */
+.modal-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #252578;
+  margin: 0 0 10px 0;
+  line-height: 1.2;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 22px 0;
+  line-height: 1.6;
+}
+
+/* ── Error ── */
+.modal-error {
+  width: 100%;
+  background: #fff5f5;
+  border: 1px solid #f8c0c0;
+  color: #c0392b;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+/* ── Input ── */
+.modal-input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid rgba(3, 4, 94, 0.25);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: "Poppins", sans-serif;
+  color: #333;
+  outline: none;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+}
+
+.modal-input:focus     { border-color: #252578; }
+.modal-input--error    { border-color: #e74c3c; }
+
+/* ── Primary button ── */
+.modal-btn {
+  width: 100%;
+  padding: 14px;
+  background: #252578;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: "Poppins", sans-serif;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.modal-btn:hover:not(:disabled) { opacity: 0.88; }
+
+.modal-btn:disabled {
+  background: #9999bb;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.modal-btn--auto {
+  width: auto;
+  padding: 12px 32px;
+}
+
+/* ── Spinner ── */
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Success ── */
+.success-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #d1fae5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.success-icon { color: #059669; }
+
+.success-actions {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+</style>

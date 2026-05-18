@@ -3,6 +3,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/lib/api'
 import { Eye, EyeOff, Loader2 } from 'lucide-vue-next'
+import ForgotPasswordModal from '@/components/ForgotPassword.vue'
 
 const router = useRouter()
 
@@ -15,6 +16,7 @@ const showPassword = ref(false)
 const isLoading = ref(false)
 const errors = ref<Record<string, string[]>>({})
 const generalError = ref('')
+const showForgot = ref(false)
 
 const togglePassword = () => {
   showPassword.value = !showPassword.value
@@ -68,83 +70,341 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-    <div class="w-full max-w-md bg-white rounded-xl shadow-lg border border-slate-200 p-8">
-      <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold tracking-tight text-slate-900">Welcome back</h1>
-        <p class="text-slate-500 mt-2">Please enter your credentials to log in</p>
-      </div>
+  <!-- Two-panel layout -->
+  <div class="login-container">
 
-      <form @submit.prevent="handleLogin" class="space-y-6">
-        <!-- Email Field -->
-        <div class="space-y-2">
-          <label for="email" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-            Email Address
-          </label>
+    <!-- ── LEFT PANEL ── -->
+    <div class="left-panel">
+      <img class="bg-image" src="@/assets/login.png" alt="Login background" />
+      <div class="overlay" />
+      <div class="left-text">
+        <h1>25 Years of Innovating Diagnostics Solutions</h1>
+        <p>ISO 9001:2015 Certified</p>
+      </div>
+    </div>
+
+    <!-- ── RIGHT PANEL ── -->
+    <div class="right-panel">
+      <form class="form-box" @submit.prevent="handleLogin">
+
+        <h2 class="title">Welcome Back!</h2>
+        <p class="subtitle">Sign in to the Ticketing Management System</p>
+
+        <!-- General / field errors -->
+        <div v-if="generalError" class="login-error" role="alert">
+          {{ generalError }}
+        </div>
+
+        <!-- EMAIL -->
+        <div class="input-wrapper">
+          <img src="@/assets/email.png" alt="Email" class="input-icon" />
           <input
             id="email"
             v-model="form.email"
             type="email"
-            placeholder="name@example.com"
-            class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            :class="{ 'border-red-500': errors.email }"
+            placeholder="Email"
+            class="input-field"
+            :class="{ 'input-field--error': errors.email }"
             required
           />
-          <p v-if="errors.email" class="text-sm font-medium text-red-500">
-            {{ errors.email[0] }}
-          </p>
         </div>
+        <p v-if="errors.email" class="field-error">{{ errors.email[0] }}</p>
 
-        <!-- Password Field -->
-        <div class="space-y-2">
-          <label for="password" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-            Password
-          </label>
-          <div class="relative">
-            <input
-              id="password"
-              v-model="form.password"
-              :type="showPassword ? 'text' : 'password'"
-              placeholder="••••••••"
-              class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pr-10"
-              :class="{ 'border-red-500': errors.password }"
-              required
-            />
-            <button
-              type="button"
-              @click="togglePassword"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
-            >
-              <Eye v-if="!showPassword" :size="18" />
-              <EyeOff v-else :size="18" />
-            </button>
-          </div>
-          <p v-if="errors.password" class="text-sm font-medium text-red-500">
-            {{ errors.password[0] }}
-          </p>
+        <!-- PASSWORD -->
+        <div class="input-wrapper">
+          <img src="@/assets/lock.png" alt="Lock" class="input-icon" />
+          <input
+            id="password"
+            v-model="form.password"
+            :type="showPassword ? 'text' : 'password'"
+            placeholder="Password"
+            class="input-field"
+            :class="{ 'input-field--error': errors.password }"
+            required
+          />
+          <button
+            type="button"
+            class="eye-toggle"
+            @click="togglePassword"
+            aria-label="Toggle password visibility"
+          >
+            <Eye v-if="!showPassword" :size="18" class="eye-icon" />
+            <EyeOff v-else :size="18" class="eye-icon" />
+          </button>
         </div>
+        <p v-if="errors.password" class="field-error">{{ errors.password[0] }}</p>
 
-        <!-- General Error -->
-        <div v-if="generalError" class="p-4 rounded-xl bg-red-50 border border-red-100 text-sm font-medium text-red-700 animate-in fade-in slide-in-from-top-1">
-          {{ generalError }}
-        </div>
-
-        <!-- Submit Button -->
+        <!-- SUBMIT -->
         <button
           type="submit"
+          class="login-btn"
           :disabled="isLoading"
-          class="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-bold ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-slate-900 text-slate-50 hover:bg-slate-800 h-12 px-4 py-2 w-full shadow-lg shadow-slate-900/10"
         >
-          <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 v-if="isLoading" class="btn-spinner" :size="18" />
           {{ isLoading ? 'Signing in...' : 'Sign In' }}
         </button>
 
-        <div class="text-center mt-6">
-          <router-link to="/forgot-password" class="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
-            Forgot your password?
-          </router-link>
+        <!-- FORGOT PASSWORD -->
+        <div class="forgot-row">
+          <button type="button" class="forgot-link" @click="showForgot = true">
+            Forgot Password?
+          </button>
         </div>
+
+        <!-- MODAL -->
+        <ForgotPasswordModal v-if="showForgot" @close="showForgot = false" />
+
       </form>
     </div>
+
   </div>
 </template>
+
+<style scoped>
+/* ════════════════════════════════════════
+   LOGIN PAGE
+════════════════════════════════════════ */
+
+.login-container {
+  display: flex;
+  height: 100vh;
+  background: #f2f7fb;
+  font-family: "Poppins", sans-serif;
+}
+
+/* ── LEFT SIDE ── */
+.left-panel {
+  position: relative;
+  width: 50%;
+  overflow: hidden;
+}
+
+.bg-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(37, 37, 120, 0.6);
+}
+
+.left-text {
+  position: absolute;
+  bottom: 60px;
+  left: 40px;
+  color: white;
+}
+
+.left-text h1 {
+  font-size: 38px;
+  font-weight: 800;
+  max-width: 380px;
+  line-height: 1.15;
+  margin: 0 0 10px 0;
+}
+
+.left-text p {
+  font-size: 16px;
+  font-weight: 400;
+  margin: 0;
+  opacity: 0.9;
+}
+
+/* ── RIGHT SIDE ── */
+.right-panel {
+  width: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f2f7fb;
+}
+
+.form-box {
+  width: 65%;
+}
+
+/* TITLE */
+.title {
+  font-size: 42px;
+  font-weight: 700;
+  color: #252578;
+  margin: 0 0 8px 0;
+}
+
+/* SUBTITLE */
+.subtitle {
+  font-size: 16px;
+  font-weight: 300;
+  color: #656569;
+  margin: 0 0 28px 0;
+}
+
+/* ── ERROR STATES ── */
+.login-error {
+  background: #fff5f5;
+  border: 1px solid #f8c0c0;
+  color: #c0392b;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 400;
+  margin-bottom: 14px;
+}
+
+.field-error {
+  font-size: 12px;
+  color: #c0392b;
+  margin: -14px 0 12px 4px;
+}
+
+/* ── INPUT WRAPPER ── */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  width: 18px;
+  height: 18px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* INPUT FIELDS */
+.input-field {
+  width: 100%;
+  padding: 16px 48px;
+  background: #ffffff;
+  border: 1px solid rgba(3, 4, 94, 0.25);
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 400;
+  color: #333;
+  font-family: "Poppins", sans-serif;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-field::placeholder {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.input-field:focus {
+  border-color: #252578;
+}
+
+.input-field--error {
+  border-color: #e74c3c;
+}
+
+/* EYE TOGGLE */
+.eye-toggle {
+  position: absolute;
+  right: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.eye-toggle:hover {
+  color: #252578;
+}
+
+/* BUTTON */
+.login-btn {
+  width: 100%;
+  padding: 16px;
+  background: #252578;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  font-family: "Poppins", sans-serif;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.login-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.login-btn:disabled {
+  background: #9999bb;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.btn-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* FORGOT PASSWORD */
+.forgot-row {
+  text-align: center;
+}
+
+.forgot-link {
+  font-size: 14px;
+  color: #252578;
+  font-family: "Poppins", sans-serif;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .login-container {
+    flex-direction: column;
+  }
+
+  .left-panel {
+    width: 100%;
+    height: 220px;
+    flex-shrink: 0;
+  }
+
+  .right-panel {
+    width: 100%;
+    height: auto;
+    padding: 32px 16px;
+  }
+
+  .form-box {
+    width: 100%;
+  }
+
+  .title {
+    font-size: 30px;
+  }
+}
+</style>
