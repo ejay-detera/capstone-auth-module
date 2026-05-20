@@ -18,7 +18,6 @@ class AuthFeaturesTest extends TestCase
         $this->disableCookieEncryption();
         
         $user = \App\Models\User::create([
-            'username' => 'admin',
             'email' => 'admin@example.com',
             'is_active' => true,
         ]);
@@ -36,7 +35,7 @@ class AuthFeaturesTest extends TestCase
     protected function getLoginTokens()
     {
         $response = $this->postJson('/api/login', [
-            'username' => 'admin',
+            'email' => 'admin@example.com',
             'password' => 'password',
         ]);
         
@@ -117,7 +116,7 @@ class AuthFeaturesTest extends TestCase
                  ->assertJsonFragment(['message' => 'Token compromise detected. All sessions revoked.']);
                  
         // Check that ALL tokens for this user are now revoked
-        $user = \App\Models\User::where('username', 'admin')->first();
+        $user = \App\Models\User::where('email', 'admin@example.com')->first();
         $unrevokedCount = DB::table('refresh_tokens')
             ->where('user_id', $user->id)
             ->where('is_revoked', 0)

@@ -79,7 +79,7 @@ const fetchMetadata = async () => {
   try {
     const [rolesRes, deptsRes] = await Promise.all([
       api.get('/api/admin/role-options'),
-      api.get('/api/admin/departments')
+      api.get('/api/admin/department-options')
     ])
     roles.value = rolesRes.data
     departments.value = deptsRes.data

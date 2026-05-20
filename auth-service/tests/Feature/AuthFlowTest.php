@@ -106,10 +106,12 @@ class AuthFlowTest extends TestCase
         ]);
 
         $token = $loginResponse->json('access_token');
+        $sessionId = $loginResponse->json('session_id');
 
         // Logout with token
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
+            'X-Session-ID' => $sessionId,
         ])->postJson('/api/logout');
 
         $response->assertStatus(200);

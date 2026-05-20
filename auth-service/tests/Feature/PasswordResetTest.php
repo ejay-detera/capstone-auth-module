@@ -15,16 +15,15 @@ class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected $seed = true;
-
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed();
         
         // Ensure admin user exists with credentials
         $user = User::firstOrCreate(
-            ['username' => 'admin'],
-            ['email' => 'admin@example.com', 'is_active' => true]
+            ['email' => 'admin@example.com'],
+            ['is_active' => true]
         );
         
         DB::table('user_credentials')->updateOrInsert(

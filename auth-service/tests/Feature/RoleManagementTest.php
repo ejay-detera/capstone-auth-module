@@ -79,7 +79,7 @@ class RoleManagementTest extends TestCase
     public function test_can_update_role()
     {
         [$user, $sessionId] = $this->getAdminUserWithSession();
-        $role = Role::factory()->create(['name' => 'Old Name']);
+        $role = Role::create(['name' => 'Old Name', 'description' => 'Old desc']);
 
         $response = $this->actingAs($user)
                          ->withHeader('X-Session-ID', $sessionId)
@@ -95,7 +95,7 @@ class RoleManagementTest extends TestCase
     public function test_can_delete_role_without_users()
     {
         [$user, $sessionId] = $this->getAdminUserWithSession();
-        $role = Role::factory()->create(['name' => 'To Be Deleted']);
+        $role = Role::create(['name' => 'To Be Deleted', 'description' => 'To be deleted desc']);
 
         $response = $this->actingAs($user)
                          ->withHeader('X-Session-ID', $sessionId)

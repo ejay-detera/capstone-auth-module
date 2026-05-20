@@ -3,7 +3,7 @@ require __DIR__.'/vendor/autoload.php';
 $app = require_once __DIR__.'/bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
-$user = \App\Models\User::with('profile.role')->where('username', 'admin')->first();
+$user = \App\Models\User::with('profile.role')->where('email', 'admin@example.com')->first();
 if (!$user) {
     echo "User 'admin' not found.\n";
     exit;

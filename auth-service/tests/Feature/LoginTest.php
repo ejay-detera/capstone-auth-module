@@ -10,7 +10,11 @@ class LoginTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected $seed = true;
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed();
+    }
 
     /**
      * A basic feature test example.
@@ -18,7 +22,7 @@ class LoginTest extends TestCase
     public function test_successful_login(): void
     {
         $response = $this->postJson('/api/login', [
-            'username' => 'admin',
+            'email' => 'admin@example.com',
             'password' => 'password',
         ]);
 
@@ -28,7 +32,7 @@ class LoginTest extends TestCase
 
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'LOGIN_SUCCESS',
-            'description' => 'Successful login for username: admin'
+            'description' => 'Successful login for email: admin@example.com'
         ]);
 
         $this->assertDatabaseHas('user_sessions', [
@@ -39,16 +43,16 @@ class LoginTest extends TestCase
     public function test_invalid_credentials(): void
     {
         $response = $this->postJson('/api/login', [
-            'username' => 'admin',
+            'email' => 'admin@example.com',
             'password' => 'wrongpassword',
         ]);
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['username']);
+                 ->assertJsonValidationErrors(['email']);
 
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'LOGIN_FAILED',
-            'description' => 'Failed login attempt for username: admin'
+            'description' => 'Failed login attempt for email: admin@example.com'
         ]);
     }
 
@@ -56,13 +60,13 @@ class LoginTest extends TestCase
     {
         for ($i = 0; $i < 3; $i++) {
             $this->postJson('/api/login', [
-                'username' => 'lockeduser',
+                'email' => 'lockeduser@example.com',
                 'password' => 'wrongpassword',
             ]);
         }
 
         $response = $this->postJson('/api/login', [
-            'username' => 'lockeduser',
+            'email' => 'lockeduser@example.com',
             'password' => 'wrongpassword',
         ]);
 
@@ -73,11 +77,11 @@ class LoginTest extends TestCase
     public function test_audit_logs_record_actor_id_on_failure_if_user_exists(): void
     {
         $this->postJson('/api/login', [
-            'username' => 'admin',
+            'email' => 'admin@example.com',
             'password' => 'wrongpassword',
         ]);
 
-        $user = \App\Models\User::where('username', 'admin')->first();
+        $user = \App\Models\User::where('email', 'admin@example.com')->first();
 
         $this->assertDatabaseHas('audit_logs', [
             'actor_id' => $user->id,

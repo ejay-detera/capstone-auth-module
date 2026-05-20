@@ -15,13 +15,17 @@ class RolePermissionTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected $seed = true;
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed();
+    }
 
     private function getAdminTokens()
     {
         $admin = User::firstOrCreate(
-            ['username' => 'admin'],
-            ['email' => 'admin@example.com', 'is_active' => true]
+            ['email' => 'admin@example.com'],
+            ['is_active' => true]
         );
 
         $role = Role::firstOrCreate(['name' => 'IT Admin']);

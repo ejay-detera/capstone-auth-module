@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class RolePermissionSeeder extends Seeder
 {
@@ -26,14 +27,15 @@ class RolePermissionSeeder extends Seeder
 
         // insertOrIgnore: skips duplicates instead of crashing
         // insertOrIgnore: skips duplicates instead of crashing
-        \DB::table('roles')->insertOrIgnore($roles);
+        DB::table('roles')->insertOrIgnore($roles);
 
         $permissions = [
             // Auth Service Internal Permissions
-            ['name' => 'View Dashboard',  'slug' => 'view-dashboard',  'system' => 'auth'],
-            ['name' => 'Manage Users',    'slug' => 'manage-users',    'system' => 'auth'],
-            ['name' => 'Manage Roles',    'slug' => 'manage-roles',    'system' => 'auth'],
-            ['name' => 'View Audit Logs', 'slug' => 'view-audit-logs', 'system' => 'auth'],
+            ['name' => 'View Dashboard',       'slug' => 'view-dashboard',       'system' => 'auth'],
+            ['name' => 'Manage Users',          'slug' => 'manage-users',         'system' => 'auth'],
+            ['name' => 'Manage Roles',          'slug' => 'manage-roles',         'system' => 'auth'],
+            ['name' => 'View Audit Logs',       'slug' => 'view-audit-logs',      'system' => 'auth'],
+            ['name' => 'Manage Departments',    'slug' => 'manage-departments',   'system' => 'auth'],
 
             // CRMS Specific Permissions
             ['name' => 'Manage CRMS Roles', 'slug' => 'crms.roles.manage', 'system' => 'crms'],

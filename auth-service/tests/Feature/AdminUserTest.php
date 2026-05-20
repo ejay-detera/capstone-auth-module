@@ -17,7 +17,11 @@ class AdminUserTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected $seed = true;
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed();
+    }
     //public function test_debug_permissions()
     //{
     //    dd(\App\Models\Permission::all()->toArray());
@@ -25,15 +29,15 @@ class AdminUserTest extends TestCase
     private function getAdminTokens()
     {
         $admin = User::firstOrCreate(
-            ['username' => 'admin'],
-            ['email' => 'admin@example.com', 'is_active' => true]
+            ['email' => 'admin@example.com'],
+            ['is_active' => true]
         );
 
         $role = Role::firstOrCreate(['name' => 'IT Admin']); // always safe
 
         // Use firstOrCreate — won't blow up if the seeder already inserted it
         $permission = \App\Models\Permission::firstOrCreate(
-            ['slug' => 'manage_users'],
+            ['slug' => 'manage-users'],
             ['name' => 'Manage Users']
         );
 
@@ -75,8 +79,7 @@ class AdminUserTest extends TestCase
         $response = $this->call('POST', '/api/admin/users', [
             'first_name' => 'John',
             'last_name' => 'Doe',
-            'email' => 'john@example.com',
-            'username' => 'johndoe',
+            'email' => 'john@sbsi.com',
             'role_id' => $role->id,
             'department_id' => $dept->id,
         ], [], [], [
@@ -92,10 +95,10 @@ class AdminUserTest extends TestCase
             'perms'      => $admin->profile?->role?->permissions?->pluck('slug'),
         ]);
         $response->assertStatus(201);
-        $this->assertDatabaseHas('users', ['username' => 'johndoe']);
+        $this->assertDatabaseHas('users', ['email' => 'john@sbsi.com']);
         $this->assertDatabaseHas('user_profiles', ['first_name' => 'John']);
         
-        $user = User::where('username', 'johndoe')->first();
+        $user = User::where('email', 'john@sbsi.com')->first();
         $this->assertDatabaseHas('user_credentials', [
             'user_id' => $user->id,
             'must_change_password' => 1
@@ -111,10 +114,10 @@ class AdminUserTest extends TestCase
         });
     }
 
-    public function test_admin_cannot_create_duplicate_username()
+    public function test_admin_cannot_create_duplicate_email()
     {
         $tokens = $this->getAdminTokens();
-        User::create(['username' => 'existing', 'email' => 'ex@example.com', 'is_active' => true]);
+        User::create(['email' => 'ex@example.com', 'is_active' => true]);
 
         $role = Role::firstOrCreate(['name' => 'Employee']);
         $dept = Department::firstOrCreate(['name' => 'IT']);
@@ -122,8 +125,7 @@ class AdminUserTest extends TestCase
         $response = $this->call('POST', '/api/admin/users', [
             'first_name' => 'John',
             'last_name' => 'Doe',
-            'email' => 'john2@example.com',
-            'username' => 'existing',
+            'email' => 'ex@example.com',
             'role_id' => $role->id,
             'department_id' => $dept->id,
         ], [], [], [
@@ -133,13 +135,13 @@ class AdminUserTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['username']);
+                 ->assertJsonValidationErrors(['email']);
     }
 
     public function test_unauthorized_user_cannot_access()
     {
         // Normal user without IT Admin role
-        $user = User::create(['username' => 'normal', 'email' => 'norm@example.com', 'is_active' => true]);
+        $user = User::create(['email' => 'norm@example.com', 'is_active' => true]);
         UserProfile::create(['user_id' => $user->id]);
 
         $accessToken = $user->createToken('auth_token')->plainTextToken;

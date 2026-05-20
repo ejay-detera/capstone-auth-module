@@ -13,12 +13,13 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class AdminUserController extends Controller
 {
     public function index(Request $request)
     {
-        return $this->buildUserQuery($request)->paginate($request->get('per_page', 15));
+        return $this->buildUserQuery($request)->paginate($request->input('per_page', 15));
     }
 
     private function buildUserQuery(Request $request)
@@ -28,8 +29,7 @@ class AdminUserController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('username', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
+                $q->where('email', 'like', "%{$search}%")
                   ->orWhereHas('profile', function ($pq) use ($search) {
                       $pq->where('first_name', 'like', "%{$search}%")
                          ->orWhere('last_name', 'like', "%{$search}%");
@@ -239,7 +239,7 @@ class AdminUserController extends Controller
     public function getUserPermissions($id)
     {
         // For security, only allow the user to see their own permissions or admins to see anyone's
-        if (auth()->id() != $id && Gate::denies('manage-users')) {
+        if (Auth::id() != $id && Gate::denies('manage-users')) {
             abort(403, 'Unauthorized.');
         }
 

@@ -102,9 +102,9 @@ class AuthController extends Controller
         });
 
         // Load permissions for the CRMS system specifically for this response
-        $permissions = $user->profile->role->permissions()
-            ->where('system', 'crms')
-            ->pluck('slug');
+        $permissions = $user->profile?->role?->permissions()
+            ?->where('system', 'crms')
+            ?->pluck('slug') ?? collect();
 
         return response()->json([
             'access_token' => $accessToken,

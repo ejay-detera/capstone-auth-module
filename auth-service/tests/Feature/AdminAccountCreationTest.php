@@ -50,13 +50,13 @@ class AdminAccountCreationTest extends TestCase
                          ->postJson('/api/admin/users', [
                              'first_name' => 'New',
                              'last_name' => 'ITUser',
-                             'email' => 'new.it@example.com',
+                             'email' => 'new.it@sbsi.com',
                              'role_id' => $role->id,
                              'department_id' => $itDept->id
                          ]);
 
         $response->assertStatus(201)
-                 ->assertJsonFragment(['email' => 'new.it@example.com']);
+                 ->assertJsonFragment(['email' => 'new.it@sbsi.com']);
     }
 
     public function test_finance_admin_can_create_account_for_finance_department()
@@ -70,13 +70,13 @@ class AdminAccountCreationTest extends TestCase
                          ->postJson('/api/admin/users', [
                              'first_name' => 'New',
                              'last_name' => 'FinanceUser',
-                             'email' => 'new.finance@example.com',
+                             'email' => 'new.finance@sbsi.com',
                              'role_id' => $role->id,
                              'department_id' => $financeDept->id
                          ]);
 
         $response->dump()->assertStatus(201)
-                 ->assertJsonFragment(['email' => 'new.finance@example.com']);
+                 ->assertJsonFragment(['email' => 'new.finance@sbsi.com']);
     }
 
     public function test_finance_admin_cannot_create_account_for_other_departments()
@@ -90,7 +90,7 @@ class AdminAccountCreationTest extends TestCase
                          ->postJson('/api/admin/users', [
                              'first_name' => 'New',
                              'last_name' => 'ITUser',
-                             'email' => 'new.it2@example.com',
+                             'email' => 'new.it2@sbsi.com',
                              'role_id' => $role->id,
                              'department_id' => $itDept->id
                          ]);
@@ -110,7 +110,7 @@ class AdminAccountCreationTest extends TestCase
                          ->postJson('/api/admin/users', [
                              'first_name' => 'New',
                              'last_name' => 'FinanceUser',
-                             'email' => 'new.finance2@example.com',
+                             'email' => 'new.finance2@sbsi.com',
                              'role_id' => $role->id,
                              'department_id' => $financeDept->id
                          ]);
