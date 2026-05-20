@@ -73,6 +73,8 @@ services:
     volumes:
       - ./web-interface:/app
       - web-interface-node-modules:/app/node_modules
+    environment:
+      - VITE_API_URL=http://auth-service:8000
     depends_on:
       - auth-service
     networks:

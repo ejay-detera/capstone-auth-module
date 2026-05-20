@@ -80,7 +80,7 @@ const handleSubmit = async () => {
         <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Create New User</h1>
         <p class="text-slate-500 mt-1">Onboard a new employee by creating their account.</p>
       </div>
-      <div class="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-slate-900/20">
+      <div class="w-12 h-12 bg-gradient-to-r from-[#252578] to-[#3b82f6] rounded-2xl flex items-center justify-center text-white shadow-lg">
         <UserPlus :size="24" />
       </div>
     </div>
@@ -198,7 +198,7 @@ const handleSubmit = async () => {
           <button 
             type="submit" 
             :disabled="isSubmitting"
-            class="w-full h-12 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 disabled:opacity-50"
+            class="w-full h-12 bg-gradient-to-r from-[#252578] to-[#3b82f6] text-white rounded-xl text-sm font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Loader2 v-if="isSubmitting" class="animate-spin h-5 w-5" />
             {{ isSubmitting ? 'Creating Account...' : 'Create Account' }}

@@ -168,7 +168,7 @@ onMounted(fetchDepartments)
       
       <button 
         @click="openCreateModal"
-        class="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 active:scale-95"
+        class="inline-flex items-center gap-2 bg-gradient-to-r from-[#252578] to-[#3b82f6] text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg transition-all active:scale-95"
       >
         <Plus :size="18" />
         Create New Department
@@ -235,7 +235,7 @@ onMounted(fetchDepartments)
             >
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                  <div class="w-8 h-8 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center group-hover:bg-[#252578] group-hover:text-white transition-colors">
                     <Building2 :size="16" />
                   </div>
                   <span class="font-bold text-slate-900">{{ dept.name }}</span>
@@ -258,7 +258,7 @@ onMounted(fetchDepartments)
                 <div class="flex items-center justify-end gap-2">
                   <button 
                     @click="openEditModal(dept)"
-                    class="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                    class="p-2 text-slate-400 hover:text-[#252578] hover:bg-blue-50 rounded-lg transition-all"
                     title="Edit Department"
                   >
                     <Edit2 :size="16" />
@@ -280,13 +280,13 @@ onMounted(fetchDepartments)
 
     <!-- Users Modal -->
     <div v-if="showUserModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showUserModal = false"></div>
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showUserModal = false"></div>
       
       <div class="relative bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
             <h2 class="text-xl font-bold text-slate-900">Department Users</h2>
-            <p class="text-sm text-slate-500 font-medium">Department: <span class="text-indigo-600">{{ selectedDepartment?.name }}</span></p>
+            <p class="text-sm text-slate-500 font-medium">Department: <span class="text-[#252578]">{{ selectedDepartment?.name }}</span></p>
           </div>
           <button @click="showUserModal = false" class="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
             <X :size="20" />
@@ -359,7 +359,7 @@ onMounted(fetchDepartments)
 
     <!-- Create/Edit Modal -->
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showModal = false"></div>
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showModal = false"></div>
       
       <div class="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
@@ -402,14 +402,14 @@ onMounted(fetchDepartments)
             <button 
               type="button" 
               @click="showModal = false"
-              class="flex-1 px-6 py-3 border-2 border-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all"
+              class="flex-1 px-6 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button 
               type="submit"
               :disabled="submitting"
-              class="flex-1 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20"
+              class="flex-1 px-6 py-3 bg-gradient-to-r from-[#252578] to-[#3b82f6] text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Loader2 v-if="submitting" class="animate-spin" :size="18" />
               {{ submitting ? 'Saving...' : (modalMode === 'create' ? 'Create Department' : 'Save Changes') }}
