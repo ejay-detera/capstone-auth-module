@@ -18,14 +18,42 @@ Format the issue title with a clear category prefix:
 - **`[Feature] <Description>`** — For new functionality, UI/UX enhancements, or changes.
 - **`[Task] <Description>`** — For refactoring, dependency updates, CI/CD, or documentation.
 
-#### 2. Body Structure
-Provide as much context as possible. Utilize the following template for new issues:
+#### 2. Issue Template
+Please utilize the following markdown structure for writing issues:
 
+```markdown
 - **Description:** A concise explanation of the issue or proposed enhancement.
-- **Steps to Reproduce (Bugs only):** A step-by-step checklist to recreate the behavior.
-- **Expected vs. Actual Behavior:** A clear contrast of the intended outcome versus the observed result.
-- **Environment:** Relevant version details (e.g., OS, browser, Node.js, database).
+- **Steps to Reproduce (Bugs only):**
+  1. [First Step]
+  2. [Second Step]
+- **Expected vs. Actual Behavior (Bugs only):**
+  - *Expected:* [What should have happened]
+  - *Actual:* [What actually happened]
+- **Environment:** Relevant environment details (e.g., OS, browser, Node.js, PHP, database).
 - **Supporting Evidence:** Console errors, backend logs, or visual screenshots.
+```
+
+#### 3. Example Issue Submission
+Here is an example of a completed issue following the template:
+
+**Title:** `[Task] Convert project images to WebP format for performance optimization`
+
+**Body:**
+```markdown
+- **Description:** 
+  The web-interface frontend currently serves several large background and logo images in `.png` format. These assets are uncompressed and excessively large, creating performance bottlenecks during initial page load and negatively affecting Core Web Vitals (specifically Largest Contentful Paint). This task covers converting these images to `.webp` format and updating all references in Vue components.
+
+- **Environment:**
+  - Node.js: v20+
+  - Framework: Vue 3 (Vite)
+  - Docker Setup: Web-interface container
+
+- **Supporting Evidence:**
+  The following oversized images were identified in the repository:
+  - `web-interface/public/images/SBSI-bg.png` (2.46 MB)
+  - `web-interface/src/assets/login.png` (1.51 MB)
+  - `web-interface/public/images/SBSI-logo.png` (111.9 KB)
+```
 
 ---
 
