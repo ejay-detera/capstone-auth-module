@@ -2,17 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Permission;
+use App\Services\RolePermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
 
 class PermissionController extends Controller
 {
+    protected RolePermissionService $rolePermissionService;
+
+    public function __construct(RolePermissionService $rolePermissionService)
+    {
+        $this->rolePermissionService = $rolePermissionService;
+    }
+
     public function index()
     {
         Gate::authorize('manage-roles');
-        return Permission::all();
+        return response()->json($this->rolePermissionService->getAllPermissions());
     }
 
     public function store(Request $request)
@@ -25,9 +31,12 @@ class PermissionController extends Controller
             'description' => 'nullable|string|max:500',
         ]);
 
-        $permission = Permission::create($validated);
-
-        $this->logAudit($request, 'PERMISSION_CREATED', "Created permission: {$permission->name} ({$permission->slug})");
+        $permission = $this->rolePermissionService->createPermission(
+            $validated,
+            $request->user(),
+            $request->ip(),
+            $request->userAgent()
+        );
 
         return response()->json($permission, 201);
     }
@@ -35,13 +44,12 @@ class PermissionController extends Controller
     public function show($id)
     {
         Gate::authorize('manage-roles');
-        return Permission::findOrFail($id);
+        return response()->json($this->rolePermissionService->getPermission((int) $id));
     }
 
     public function update(Request $request, $id)
     {
         Gate::authorize('manage-roles');
-        $permission = Permission::findOrFail($id);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -49,12 +57,13 @@ class PermissionController extends Controller
             'description' => 'nullable|string|max:500',
         ]);
 
-        $permission->update($validated);
-
-        // Invalidate cache for all affected users
-        $this->invalidateAffectedUsers($permission);
-
-        $this->logAudit($request, 'PERMISSION_UPDATED', "Updated permission: {$permission->name}");
+        $permission = $this->rolePermissionService->updatePermission(
+            (int) $id,
+            $validated,
+            $request->user(),
+            $request->ip(),
+            $request->userAgent()
+        );
 
         return response()->json($permission);
     }
@@ -62,14 +71,13 @@ class PermissionController extends Controller
     public function destroy(Request $request, $id)
     {
         Gate::authorize('manage-roles');
-        $permission = Permission::findOrFail($id);
 
-        // Invalidate cache before deletion
-        $this->invalidateAffectedUsers($permission);
-
-        $permission->delete();
-
-        $this->logAudit($request, 'PERMISSION_DELETED', "Deleted permission: {$permission->name}");
+        $this->rolePermissionService->deletePermission(
+            (int) $id,
+            $request->user(),
+            $request->ip(),
+            $request->userAgent()
+        );
 
         return response()->json(['message' => 'Permission deleted successfully.']);
     }
@@ -77,56 +85,26 @@ class PermissionController extends Controller
     public function getRoles($id)
     {
         Gate::authorize('manage-roles');
-        $permission = Permission::findOrFail($id);
-        return response()->json($permission->roles()->get(['roles.id', 'roles.name']));
+        return response()->json($this->rolePermissionService->getPermissionRoles((int) $id));
     }
 
     public function syncRoles(Request $request, $id)
     {
         Gate::authorize('manage-roles');
-        $permission = Permission::findOrFail($id);
 
         $request->validate([
             'role_ids' => 'present|array',
             'role_ids.*' => 'exists:roles,id'
         ]);
 
-        $permission->roles()->sync($request->role_ids);
-
-        // Invalidate cache for all users who have this permission (either now or previously)
-        $this->invalidateAffectedUsers($permission);
-
-        $this->logAudit($request, 'PERMISSION_ROLES_UPDATED', "Updated roles for permission: {$permission->name}");
+        $this->rolePermissionService->syncPermissionRoles(
+            (int) $id,
+            $request->role_ids,
+            $request->user(),
+            $request->ip(),
+            $request->userAgent()
+        );
 
         return response()->json(['message' => 'Roles updated successfully.']);
-    }
-
-    private function invalidateAffectedUsers(Permission $permission)
-    {
-        try {
-            $userIds = \App\Models\User::whereHas('profile.role.permissions', function ($query) use ($permission) {
-                $query->where('permissions.id', $permission->id);
-            })->pluck('id');
-
-            foreach ($userIds as $userId) {
-                \Illuminate\Support\Facades\Cache::store('database')->forget("permissions:user:{$userId}");
-            }
-        } catch (\Exception $e) {
-            Log::warning('Failed to invalidate user permission cache', ['error' => $e->getMessage()]);
-        }
-    }
-
-    private function logAudit(Request $request, $action, $description)
-    {
-        \Illuminate\Support\Facades\DB::table('audit_logs')->insert([
-            'actor_id' => $request->user()->id ?? null,
-            'action' => $action,
-            'description' => $description,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'action_date' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
     }
 }
