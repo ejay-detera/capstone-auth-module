@@ -111,6 +111,9 @@ Please utilize the following markdown structure for the pull request description
 ### Summary
 A concise description of the purpose of this Pull Request.
 
+### Linked Issue
+Closes #<Issue_Number>
+
 ### Changes
 - Itemized list of specific technical modifications.
 - Infrastructure or configuration updates.
@@ -132,6 +135,9 @@ A concise description of the purpose of this Pull Request.
 ```markdown
 ### Summary
 Implementation of Docker orchestration for local development and a comprehensive documentation overhaul.
+
+### Linked Issue
+Closes #123
 
 ### Changes
 - Added Dockerfiles for auth-service and web-interface.
