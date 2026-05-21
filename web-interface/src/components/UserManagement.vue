@@ -1,106 +1,70 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-import api from '@/lib/api'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useUsers } from '@/composables/useUsers'
 import { 
   Loader2, 
   Search, 
-  MoreVertical, 
   ChevronLeft, 
   ChevronRight,
   Shield,
   Building2,
   Mail,
   User as UserIcon,
-  X
+  X,
+  MoreVertical,
+  Check
 } from 'lucide-vue-next'
+import ConfirmPasswordModal from './ConfirmPasswordModal.vue'
+import type { User } from '@/types'
 
-interface Role {
-  id: number
-  name: string
+const {
+  users,
+  roles,
+  departments,
+  isLoading,
+  pagination,
+  filters,
+  fetchUsers,
+  fetchMetadata,
+  isAssigning,
+  assignRole,
+  isTogglingStatus,
+  confirmPasswordError,
+  toggleUserStatus,
+} = useUsers()
+
+// ── Dropdown State ──────────────────────────────────────────────────────────
+const activeDropdownUserId = ref<number | null>(null)
+
+const toggleDropdown = (userId: number) => {
+  activeDropdownUserId.value = activeDropdownUserId.value === userId ? null : userId
 }
 
-interface Department {
-  id: number
-  name: string
-}
-
-interface User {
-  id: number
-  email: string
-  is_active: boolean
-  profile?: {
-    first_name: string
-    last_name: string
-    role?: Role
-    department?: Department
-  }
-}
-
-const users = ref<User[]>([])
-const roles = ref<Role[]>([])
-const departments = ref<Department[]>([])
-const isLoading = ref(true)
-const pagination = ref({
-  current_page: 1,
-  last_page: 1,
-  total: 0
-})
-
-const filters = ref({
-  role_id: '',
-  department_id: '',
-  is_active: '',
-  search: ''
-})
-
-const fetchData = async (page = 1) => {
-  isLoading.value = true
-  try {
-    const response = await api.get('/api/admin/users', {
-      params: {
-        page,
-        ...filters.value
-      }
-    })
-    users.value = response.data.data
-    pagination.value = {
-      current_page: response.data.current_page,
-      last_page: response.data.last_page,
-      total: response.data.total
-    }
-  } catch (err) {
-    console.error('Failed to fetch users', err)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const fetchMetadata = async () => {
-  try {
-    const [rolesRes, deptsRes] = await Promise.all([
-      api.get('/api/admin/role-options'),
-      api.get('/api/admin/department-options')
-    ])
-    roles.value = rolesRes.data
-    departments.value = deptsRes.data
-  } catch (err) {
-    console.error('Failed to fetch metadata', err)
+const handleWindowClick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  if (!target.closest('.dropdown-trigger') && !target.closest('.dropdown-menu')) {
+    activeDropdownUserId.value = null
   }
 }
 
 onMounted(() => {
-  fetchData()
+  fetchUsers()
   fetchMetadata()
+  window.addEventListener('click', handleWindowClick)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', handleWindowClick)
 })
 
 watch(filters, () => {
-  fetchData(1)
+  fetchUsers(1)
 }, { deep: true })
 
+// ── Role Assignment Modal ───────────────────────────────────────────────────
 const showRoleModal = ref(false)
 const selectedUser = ref<User | null>(null)
 const selectedRoleId = ref<number | string>('')
-const isAssigning = ref(false)
 
 const openRoleModal = (user: User) => {
   selectedUser.value = user
@@ -111,17 +75,33 @@ const openRoleModal = (user: User) => {
 const handleAssignRole = async () => {
   if (!selectedUser.value || !selectedRoleId.value) return
   
-  isAssigning.value = true
-  try {
-    await api.patch(`/api/admin/users/${selectedUser.value.id}/role`, {
-      role_id: selectedRoleId.value
-    })
+  const result = await assignRole(selectedUser.value.id, selectedRoleId.value)
+  if (result.success) {
     showRoleModal.value = false
-    fetchData(pagination.value.current_page)
-  } catch (err: any) {
-    alert(err.response?.data?.message || 'Failed to assign role')
-  } finally {
-    isAssigning.value = false
+    fetchUsers(pagination.value.current_page)
+  } else {
+    alert(result.message)
+  }
+}
+
+// ── Status Toggle Modal ─────────────────────────────────────────────────────
+const showConfirmModal = ref(false)
+const userToToggleStatus = ref<User | null>(null)
+
+const openConfirmModal = (user: User) => {
+  userToToggleStatus.value = user
+  confirmPasswordError.value = ''
+  showConfirmModal.value = true
+  activeDropdownUserId.value = null
+}
+
+const handleConfirmStatusToggle = async (password: string) => {
+  if (!userToToggleStatus.value) return
+
+  const success = await toggleUserStatus(userToToggleStatus.value.id, password)
+  if (success) {
+    showConfirmModal.value = false
+    fetchUsers(pagination.value.current_page)
   }
 }
 </script>
@@ -191,7 +171,7 @@ const handleAssignRole = async () => {
               <th class="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Role</th>
               <th class="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Department</th>
               <th class="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+              <th class="px-8 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -244,14 +224,44 @@ const handleAssignRole = async () => {
                   {{ user.is_active ? 'Active' : 'Inactive' }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-right">
-                <button 
-                  @click="openRoleModal(user)"
-                  class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-900 transition-all flex items-center gap-2 text-xs font-bold"
-                >
-                  <Shield :size="16" />
-                  Assign Role
-                </button>
+              <td class="px-6 py-4 relative">
+                <div class="flex justify-end items-center relative">
+                  <!-- Ellipses Trigger Button -->
+                  <button 
+                    @click.stop="toggleDropdown(user.id)"
+                    class="dropdown-trigger p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-900 transition-all"
+                    title="Actions"
+                  >
+                    <MoreVertical :size="18" />
+                  </button>
+
+                  <!-- Dropdown expanded container -->
+                  <div 
+                    v-if="activeDropdownUserId === user.id"
+                    class="dropdown-menu absolute right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-xl shadow-lg p-2 flex flex-col items-center gap-1.5 whitespace-nowrap animate-in fade-in slide-in-from-top-1 duration-150"
+                  >
+                    <!-- Assign Role Button -->
+                    <button 
+                      @click="openRoleModal(user); activeDropdownUserId = null"
+                      class="flex-1 px-2.5 py-1.5 hover:bg-slate-100 rounded-lg text-slate-700 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5 text-xs font-bold"
+                    >
+                      <Shield :size="14" class="text-slate-400" />
+                      Assign Role
+                    </button>
+
+                    <!-- Activate/Deactivate Button -->
+                    <button 
+                      @click="openConfirmModal(user)"
+                      class="flex-1 px-2.5 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs font-bold border"
+                      :class="user.is_active 
+                        ? 'bg-rose-50 border-rose-100 hover:bg-rose-100/70 text-rose-700' 
+                        : 'bg-emerald-50 border-emerald-100 hover:bg-emerald-100/70 text-emerald-700'"
+                    >
+                      <component :is="user.is_active ? X : Check" :size="14" />
+                      {{ user.is_active ? 'Deactivate' : 'Activate' }}
+                    </button>
+                  </div>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -265,7 +275,7 @@ const handleAssignRole = async () => {
         </p>
         <div class="flex items-center gap-2">
           <button 
-            @click="fetchData(pagination.current_page - 1)"
+            @click="fetchUsers(pagination.current_page - 1)"
             :disabled="pagination.current_page === 1"
             class="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 transition-all shadow-sm"
           >
@@ -275,7 +285,7 @@ const handleAssignRole = async () => {
             <button 
               v-for="p in pagination.last_page" 
               :key="p"
-              @click="fetchData(p)"
+              @click="fetchUsers(p)"
               class="w-8 h-8 rounded-lg text-sm font-bold transition-all"
               :class="pagination.current_page === p ? 'bg-slate-900 text-white shadow-md' : 'hover:bg-slate-200 text-slate-600'"
             >
@@ -283,7 +293,7 @@ const handleAssignRole = async () => {
             </button>
           </div>
           <button 
-            @click="fetchData(pagination.current_page + 1)"
+            @click="fetchUsers(pagination.current_page + 1)"
             :disabled="pagination.current_page === pagination.last_page"
             class="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 transition-all shadow-sm"
           >
@@ -359,5 +369,16 @@ const handleAssignRole = async () => {
         </div>
       </div>
     </div>
+    <!-- Password Confirmation Modal for Status Toggle -->
+    <ConfirmPasswordModal
+      :show="showConfirmModal"
+      :title="userToToggleStatus?.is_active ? 'Deactivate User Account' : 'Activate User Account'"
+      :description="userToToggleStatus?.is_active ? 'Are you sure you want to deactivate this user? They will be signed out of all active sessions.' : 'Are you sure you want to activate this user?'"
+      :confirmLabel="userToToggleStatus?.is_active ? 'Deactivate' : 'Activate'"
+      :isSubmitting="isTogglingStatus"
+      :error="confirmPasswordError"
+      @close="showConfirmModal = false"
+      @confirm="handleConfirmStatusToggle"
+    />
   </div>
 </template>

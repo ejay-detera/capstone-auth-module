@@ -25,6 +25,7 @@ Route::middleware(['auth:sanctum', 'active.session', 'can:manage-users'])->prefi
     Route::get('/users', [App\Http\Controllers\AdminUserController::class, 'index']);
     Route::post('/users', [App\Http\Controllers\AdminUserController::class, 'store']);
     Route::get('/users/{id}', [App\Http\Controllers\AdminUserController::class, 'show']);
+    Route::patch('/users/{id}/status', [App\Http\Controllers\AdminUserController::class, 'toggleStatus']);
     Route::get('/department-options', [App\Http\Controllers\AdminUserController::class, 'getDepartments']);
     Route::get('/role-options', [App\Http\Controllers\AdminUserController::class, 'getRoles']);
 });

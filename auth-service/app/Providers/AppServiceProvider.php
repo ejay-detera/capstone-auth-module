@@ -8,12 +8,32 @@ use App\Policies\AdminPolicy;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            \App\Repositories\Contracts\UserRepositoryInterface::class,
+            \App\Repositories\Eloquent\UserRepository::class
+        );
+        $this->app->bind(
+            \App\Repositories\Contracts\SessionRepositoryInterface::class,
+            \App\Repositories\Eloquent\SessionRepository::class
+        );
+        $this->app->bind(
+            \App\Repositories\Contracts\RoleRepositoryInterface::class,
+            \App\Repositories\Eloquent\RoleRepository::class
+        );
+        $this->app->bind(
+            \App\Repositories\Contracts\DepartmentRepositoryInterface::class,
+            \App\Repositories\Eloquent\DepartmentRepository::class
+        );
+        $this->app->bind(
+            \App\Repositories\Contracts\PermissionRepositoryInterface::class,
+            \App\Repositories\Eloquent\PermissionRepository::class
+        );
+        $this->app->bind(
+            \App\Repositories\Contracts\AuditLogRepositoryInterface::class,
+            \App\Repositories\Eloquent\AuditLogRepository::class
+        );
     }
 
     /**

@@ -29,6 +29,12 @@ const routes = [
     component: () => import('../components/EmailVerification.vue')
   },
   {
+    path: '/home',
+    name: 'home',
+    component: () => import('../components/HomePage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/admin',
     component: () => import('../components/AdminLayout.vue'),
     redirect: '/admin/users',
@@ -37,7 +43,7 @@ const routes = [
       {
         path: 'users',
         name: 'admin-user-list',
-        component: () => import('../components/UserList.vue')
+        component: () => import('../components/UserManagement.vue')
       },
       {
         path: 'users/create',
@@ -68,7 +74,7 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('access_token')
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
