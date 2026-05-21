@@ -37,14 +37,8 @@ const handleLogin = async () => {
     
     const roleName = user.profile?.role?.name || user.role || ''
 
-    if (roleName === 'IT Admin') {
-      router.push('/admin')
-    } else if (roleName === 'Admin') {
-      window.location.href = '/crms/admin/dashboard'
-    } else if (roleName === 'Manager') {
-      window.location.href = '/crms/manager/dashboard'
-    } else if (roleName === 'Sales' || roleName === 'Employee') {
-      window.location.href = '/crms/sales/dashboard'
+    if (['IT Admin', 'Admin', 'Manager', 'Sales', 'Employee'].includes(roleName)) {
+      router.push('/home')
     } else {
       generalError.value = 'Unrecognized role. Please contact IT Support.'
       localStorage.removeItem('access_token')

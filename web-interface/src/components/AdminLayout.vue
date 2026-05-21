@@ -3,18 +3,15 @@ import { useRouter } from 'vue-router'
 import { 
   Users, 
   LayoutDashboard, 
-  Bell,
   UserPlus,
   Shield,
   Key,
   Building2
 } from 'lucide-vue-next'
 
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 
 const router = useRouter()
-const user = JSON.parse(localStorage.getItem('user') || '{}')
-const dropdownOpen = ref(false)
 
 const handleLogout = () => {
   localStorage.removeItem('access_token')

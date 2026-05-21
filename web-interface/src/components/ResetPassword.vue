@@ -39,7 +39,7 @@ const handleSubmit = async () => {
   generalError.value = ''
 
   try {
-    const response = await api.post('/api/reset-password', form)
+    await api.post('/api/reset-password', form)
     isSuccess.value = true
     setTimeout(() => {
       router.push('/')

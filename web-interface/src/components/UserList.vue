@@ -4,7 +4,6 @@ import api from '@/lib/api'
 import { 
   Loader2, 
   Search, 
-  MoreVertical, 
   ChevronLeft, 
   ChevronRight,
   Shield,
