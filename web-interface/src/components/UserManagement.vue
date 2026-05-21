@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import api from '@/lib/api'
+import { useUsers } from '@/composables/useUsers'
 import { 
   Loader2, 
   Search, 
@@ -15,93 +15,29 @@ import {
   Check
 } from 'lucide-vue-next'
 import ConfirmPasswordModal from './ConfirmPasswordModal.vue'
+import type { User } from '@/types'
 
-interface Role {
-  id: number
-  name: string
-}
+const {
+  users,
+  roles,
+  departments,
+  isLoading,
+  pagination,
+  filters,
+  fetchUsers,
+  fetchMetadata,
+  isAssigning,
+  assignRole,
+  isTogglingStatus,
+  confirmPasswordError,
+  toggleUserStatus,
+} = useUsers()
 
-interface Department {
-  id: number
-  name: string
-}
-
-interface User {
-  id: number
-  email: string
-  is_active: boolean
-  profile?: {
-    first_name: string
-    last_name: string
-    role?: Role
-    department?: Department
-  }
-}
-
-const users = ref<User[]>([])
-const roles = ref<Role[]>([])
-const departments = ref<Department[]>([])
-const isLoading = ref(true)
-const pagination = ref({
-  current_page: 1,
-  last_page: 1,
-  total: 0
-})
-
-const filters = ref({
-  role_id: '',
-  department_id: '',
-  is_active: '',
-  search: ''
-})
-
-const fetchData = async (page = 1) => {
-  isLoading.value = true
-  try {
-    const response = await api.get('/api/admin/users', {
-      params: {
-        page,
-        ...filters.value
-      }
-    })
-    users.value = response.data.data
-    pagination.value = {
-      current_page: response.data.current_page,
-      last_page: response.data.last_page,
-      total: response.data.total
-    }
-  } catch (err) {
-    console.error('Failed to fetch users', err)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const fetchMetadata = async () => {
-  try {
-    const [rolesRes, deptsRes] = await Promise.all([
-      api.get('/api/admin/role-options'),
-      api.get('/api/admin/department-options')
-    ])
-    roles.value = rolesRes.data
-    departments.value = deptsRes.data
-  } catch (err) {
-    console.error('Failed to fetch metadata', err)
-  }
-}
-
+// ── Dropdown State ──────────────────────────────────────────────────────────
 const activeDropdownUserId = ref<number | null>(null)
-const showConfirmModal = ref(false)
-const userToToggleStatus = ref<User | null>(null)
-const confirmPasswordError = ref('')
-const isTogglingStatus = ref(false)
 
 const toggleDropdown = (userId: number) => {
-  if (activeDropdownUserId.value === userId) {
-    activeDropdownUserId.value = null
-  } else {
-    activeDropdownUserId.value = userId
-  }
+  activeDropdownUserId.value = activeDropdownUserId.value === userId ? null : userId
 }
 
 const handleWindowClick = (event: MouseEvent) => {
@@ -112,7 +48,7 @@ const handleWindowClick = (event: MouseEvent) => {
 }
 
 onMounted(() => {
-  fetchData()
+  fetchUsers()
   fetchMetadata()
   window.addEventListener('click', handleWindowClick)
 })
@@ -122,13 +58,13 @@ onUnmounted(() => {
 })
 
 watch(filters, () => {
-  fetchData(1)
+  fetchUsers(1)
 }, { deep: true })
 
+// ── Role Assignment Modal ───────────────────────────────────────────────────
 const showRoleModal = ref(false)
 const selectedUser = ref<User | null>(null)
 const selectedRoleId = ref<number | string>('')
-const isAssigning = ref(false)
 
 const openRoleModal = (user: User) => {
   selectedUser.value = user
@@ -139,19 +75,18 @@ const openRoleModal = (user: User) => {
 const handleAssignRole = async () => {
   if (!selectedUser.value || !selectedRoleId.value) return
   
-  isAssigning.value = true
-  try {
-    await api.patch(`/api/admin/users/${selectedUser.value.id}/role`, {
-      role_id: selectedRoleId.value
-    })
+  const result = await assignRole(selectedUser.value.id, selectedRoleId.value)
+  if (result.success) {
     showRoleModal.value = false
-    fetchData(pagination.value.current_page)
-  } catch (err: any) {
-    alert(err.response?.data?.message || 'Failed to assign role')
-  } finally {
-    isAssigning.value = false
+    fetchUsers(pagination.value.current_page)
+  } else {
+    alert(result.message)
   }
 }
+
+// ── Status Toggle Modal ─────────────────────────────────────────────────────
+const showConfirmModal = ref(false)
+const userToToggleStatus = ref<User | null>(null)
 
 const openConfirmModal = (user: User) => {
   userToToggleStatus.value = user
@@ -162,18 +97,11 @@ const openConfirmModal = (user: User) => {
 
 const handleConfirmStatusToggle = async (password: string) => {
   if (!userToToggleStatus.value) return
-  isTogglingStatus.value = true
-  confirmPasswordError.value = ''
-  try {
-    await api.patch(`/api/admin/users/${userToToggleStatus.value.id}/status`, {
-      password
-    })
+
+  const success = await toggleUserStatus(userToToggleStatus.value.id, password)
+  if (success) {
     showConfirmModal.value = false
-    fetchData(pagination.value.current_page)
-  } catch (err: any) {
-    confirmPasswordError.value = err.response?.data?.message || err.response?.data?.errors?.password?.[0] || 'Password verification failed'
-  } finally {
-    isTogglingStatus.value = false
+    fetchUsers(pagination.value.current_page)
   }
 }
 </script>
@@ -347,7 +275,7 @@ const handleConfirmStatusToggle = async (password: string) => {
         </p>
         <div class="flex items-center gap-2">
           <button 
-            @click="fetchData(pagination.current_page - 1)"
+            @click="fetchUsers(pagination.current_page - 1)"
             :disabled="pagination.current_page === 1"
             class="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 transition-all shadow-sm"
           >
@@ -357,7 +285,7 @@ const handleConfirmStatusToggle = async (password: string) => {
             <button 
               v-for="p in pagination.last_page" 
               :key="p"
-              @click="fetchData(p)"
+              @click="fetchUsers(p)"
               class="w-8 h-8 rounded-lg text-sm font-bold transition-all"
               :class="pagination.current_page === p ? 'bg-slate-900 text-white shadow-md' : 'hover:bg-slate-200 text-slate-600'"
             >
@@ -365,7 +293,7 @@ const handleConfirmStatusToggle = async (password: string) => {
             </button>
           </div>
           <button 
-            @click="fetchData(pagination.current_page + 1)"
+            @click="fetchUsers(pagination.current_page + 1)"
             :disabled="pagination.current_page === pagination.last_page"
             class="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 transition-all shadow-sm"
           >

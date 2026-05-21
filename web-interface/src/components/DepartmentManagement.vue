@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { 
   Plus, 
   Search, 
@@ -13,43 +13,28 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-vue-next'
-import api from '@/lib/api'
+import { useDepartments } from '@/composables/useDepartments'
+import type { Department } from '@/types'
 
-interface Department {
-  id: number
-  name: string
-  description: string
-  users_count: number
-}
-
-interface User {
-  id: number
-  email: string
-  profile: {
-    first_name: string
-    last_name: string
-    role?: {
-      name: string
-    }
-  }
-}
-
-const departments = ref<Department[]>([])
-const loading = ref(true)
-const searchQuery = ref('')
-
-const filteredDepartments = computed(() => {
-  if (!Array.isArray(departments.value)) return []
-  return departments.value.filter(d => 
-    d.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
-    d.description?.toLowerCase().includes(searchQuery.value.toLowerCase())
-  )
-})
+const {
+  departments,
+  loading,
+  error,
+  searchQuery,
+  filteredDepartments,
+  fetchDepartments,
+  submitting,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment: deleteDepartmentAction,
+  departmentUsers,
+  loadingUsers,
+  userPagination,
+  fetchDepartmentUsers,
+} = useDepartments()
 
 const showModal = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
-const submitting = ref(false)
-const error = ref('')
 const form = ref({
   id: null as number | null,
   name: '',
@@ -58,26 +43,6 @@ const form = ref({
 
 const showUserModal = ref(false)
 const selectedDepartment = ref<Department | null>(null)
-const departmentUsers = ref<User[]>([])
-const loadingUsers = ref(false)
-const userPagination = ref({
-  current_page: 1,
-  last_page: 1,
-  total: 0
-})
-
-const fetchDepartments = async () => {
-  loading.value = true
-  try {
-    const response = await api.get('/api/admin/departments')
-    departments.value = response.data
-  } catch (err: any) {
-    console.error('Failed to fetch departments', err)
-    error.value = 'Failed to load departments. Please try again.'
-  } finally {
-    loading.value = false
-  }
-}
 
 const openCreateModal = () => {
   modalMode.value = 'create'
@@ -87,65 +52,46 @@ const openCreateModal = () => {
 
 const openEditModal = (dept: Department) => {
   modalMode.value = 'edit'
-  form.value = { id: dept.id, name: dept.name, description: dept.description }
+  form.value = { id: dept.id, name: dept.name, description: dept.description || '' }
   showModal.value = true
 }
 
 const handleSubmit = async () => {
-  submitting.value = true
-  error.value = ''
-  try {
-    if (modalMode.value === 'create') {
-      await api.post('/api/admin/departments', form.value)
-    } else {
-      await api.put(`/api/admin/departments/${form.value.id}`, form.value)
-    }
+  const { id, ...payload } = form.value
+  let success = false
+
+  if (modalMode.value === 'create') {
+    success = await createDepartment(payload)
+  } else if (id !== null) {
+    success = await updateDepartment(id, payload)
+  }
+
+  if (success) {
     showModal.value = false
-    fetchDepartments()
-  } catch (err: any) {
-    error.value = err.response?.data?.message || 'Something went wrong'
-  } finally {
-    submitting.value = false
   }
 }
 
-const deleteDepartment = async (id: number) => {
+const handleDelete = async (id: number) => {
   const dept = departments.value.find(d => d.id === id)
   if (!dept) return
 
-  if (dept.users_count > 0) {
+  if ((dept.users_count ?? 0) > 0) {
     alert(`Cannot delete department with ${dept.users_count} assigned users.`)
     return
   }
 
   if (!confirm('Are you sure you want to delete this department?')) return
 
-  try {
-    await api.delete(`/api/admin/departments/${id}`)
-    fetchDepartments()
-  } catch (err: any) {
-    alert(err.response?.data?.message || 'Failed to delete department')
+  const result = await deleteDepartmentAction(id)
+  if (!result.success) {
+    alert(result.message)
   }
 }
 
 const openUserModal = async (dept: Department, page = 1) => {
   selectedDepartment.value = dept
   showUserModal.value = true
-  loadingUsers.value = true
-  
-  try {
-    const response = await api.get(`/api/admin/departments/${dept.id}/users?page=${page}`)
-    departmentUsers.value = response.data.data
-    userPagination.value = {
-      current_page: response.data.current_page,
-      last_page: response.data.last_page,
-      total: response.data.total
-    }
-  } catch (err: any) {
-    console.error('Failed to fetch department users', err)
-  } finally {
-    loadingUsers.value = false
-  }
+  await fetchDepartmentUsers(dept.id, page)
 }
 
 const changeUserPage = (page: number) => {
@@ -248,7 +194,7 @@ onMounted(fetchDepartments)
                 <button 
                   @click="openUserModal(dept)"
                   class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all hover:scale-105 active:scale-95"
-                  :class="dept.users_count > 0 ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                  :class="(dept.users_count ?? 0) > 0 ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
                 >
                   <UsersIcon :size="12" />
                   {{ dept.users_count }} Users
@@ -264,7 +210,7 @@ onMounted(fetchDepartments)
                     <Edit2 :size="16" />
                   </button>
                   <button 
-                    @click="deleteDepartment(dept.id)"
+                    @click="handleDelete(dept.id)"
                     class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                     title="Delete Department"
                   >
@@ -316,10 +262,10 @@ onMounted(fetchDepartments)
                 <tbody class="divide-y divide-slate-50">
                   <tr v-for="user in departmentUsers" :key="user.id" class="hover:bg-slate-50/50 transition-colors">
                     <td class="px-4 py-3">
-                      <div class="font-bold text-slate-900">{{ user.profile.first_name }} {{ user.profile.last_name }}</div>
+                      <div class="font-bold text-slate-900">{{ user.profile?.first_name }} {{ user.profile?.last_name }}</div>
                     </td>
                     <td class="px-4 py-3 text-sm text-slate-600">
-                      {{ user.profile.role?.name || 'N/A' }}
+                      {{ user.profile?.role?.name || 'N/A' }}
                     </td>
                     <td class="px-4 py-3 text-sm text-slate-500">
                       {{ user.email }}

@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import api from '@/lib/api'
+import { useAuth } from '@/composables/useAuth'
 import { Loader2, Eye, EyeOff, CheckCircle2, LockKeyhole } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
+const {
+  resetPassword,
+  resetLoading: isLoading,
+  resetSuccess: isSuccess,
+  resetErrors: errors,
+  resetGeneralError: generalError,
+} = useAuth()
 
 const form = reactive({
   token: '',
@@ -15,10 +22,6 @@ const form = reactive({
 })
 
 const showPassword = ref(false)
-const isLoading = ref(false)
-const isSuccess = ref(false)
-const errors = ref<Record<string, string[]>>({})
-const generalError = ref('')
 
 onMounted(() => {
   form.token = route.query.token as string || ''
@@ -34,24 +37,11 @@ const togglePassword = () => {
 }
 
 const handleSubmit = async () => {
-  isLoading.value = true
-  errors.value = {}
-  generalError.value = ''
-
-  try {
-    await api.post('/api/reset-password', form)
-    isSuccess.value = true
+  await resetPassword(form)
+  if (isSuccess.value) {
     setTimeout(() => {
       router.push('/')
     }, 3000)
-  } catch (error: any) {
-    if (error.response?.status === 422) {
-      errors.value = error.response.data.errors
-    } else {
-      generalError.value = error.response?.data?.message || 'Failed to reset password. The link may have expired.'
-    }
-  } finally {
-    isLoading.value = false
   }
 }
 </script>

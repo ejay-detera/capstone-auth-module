@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/lib/api'
+import { useAuth } from '@/composables/useAuth'
 import { Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 import ForgotPasswordModal from '@/components/ForgotPassword.vue'
 
 const router = useRouter()
+const {
+  login,
+  loginLoading: isLoading,
+  loginErrors: errors,
+  loginGeneralError: generalError,
+} = useAuth()
 
 const form = reactive({
   email: '',
@@ -13,9 +19,6 @@ const form = reactive({
 })
 
 const showPassword = ref(false)
-const isLoading = ref(false)
-const errors = ref<Record<string, string[]>>({})
-const generalError = ref('')
 const showForgot = ref(false)
 
 const togglePassword = () => {
@@ -23,19 +26,10 @@ const togglePassword = () => {
 }
 
 const handleLogin = async () => {
-  isLoading.value = true
-  errors.value = {}
-  generalError.value = ''
+  const result = await login(form)
 
-  try {
-    const response = await api.post('/api/login', form)
-    
-    const { access_token, user, session_id } = response.data
-    localStorage.setItem('access_token', access_token)
-    localStorage.setItem('session_id', session_id)
-    localStorage.setItem('user', JSON.stringify(user))
-    
-    const roleName = user.profile?.role?.name || user.role || ''
+  if (result.success && result.user) {
+    const roleName = result.user.profile?.role?.name || result.user.role || ''
 
     if (['IT Admin', 'Admin', 'Manager', 'Sales', 'Employee'].includes(roleName)) {
       router.push('/home')
@@ -45,20 +39,6 @@ const handleLogin = async () => {
       localStorage.removeItem('session_id')
       localStorage.removeItem('user')
     }
-  } catch (error: any) {
-    if (error.response) {
-      if (error.response.status === 422) {
-        errors.value = error.response.data.errors
-      } else if (error.response.status === 429) {
-        generalError.value = error.response.data.message
-      } else {
-        generalError.value = error.response.data.message || 'An error occurred during login.'
-      }
-    } else {
-      generalError.value = 'Cannot connect to the server.'
-    }
-  } finally {
-    isLoading.value = false
   }
 }
 </script>

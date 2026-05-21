@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { 
   Plus, 
   Search, 
@@ -13,38 +13,29 @@ import {
   AlertCircle,
   Check
 } from 'lucide-vue-next'
-import api from '@/lib/api'
+import { usePermissions } from '@/composables/usePermissions'
+import type { Permission } from '@/types'
 
-interface Permission {
-  id: number
-  name: string
-  slug: string
-  description: string
-}
-
-interface Role {
-  id: number
-  name: string
-}
-
-const permissions = ref<Permission[]>([])
-const roles = ref<Role[]>([])
-const loading = ref(true)
-const searchQuery = ref('')
-
-const filteredPermissions = computed(() => {
-  if (!Array.isArray(permissions.value)) return []
-  return permissions.value.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
-    p.slug.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    p.description?.toLowerCase().includes(searchQuery.value.toLowerCase())
-  )
-})
+const {
+  permissions,
+  roles,
+  loading,
+  error,
+  searchQuery,
+  filteredPermissions,
+  fetchPermissions,
+  submitting,
+  createPermission,
+  updatePermission,
+  deletePermission: deletePermissionAction,
+  selectedRoleIds,
+  loadingRoles,
+  fetchPermissionRoles,
+  syncPermissionRoles,
+} = usePermissions()
 
 const showModal = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
-const submitting = ref(false)
-const error = ref('')
 const form = ref({
   id: null as number | null,
   name: '',
@@ -54,60 +45,18 @@ const form = ref({
 
 const showAssignModal = ref(false)
 const selectedPermission = ref<Permission | null>(null)
-const selectedRoleIds = ref<number[]>([])
-const loadingRoles = ref(false)
 
 const openAssignModal = async (permission: Permission) => {
   selectedPermission.value = permission
   showAssignModal.value = true
-  loadingRoles.value = true
-  error.value = ''
-  selectedRoleIds.value = []
-
-  try {
-    // Fetch all roles if not already fetched
-    if (roles.value.length === 0) {
-      const rolesRes = await api.get('/api/admin/role-options')
-      roles.value = rolesRes.data
-    }
-
-    // Fetch which roles have this permission
-    const res = await api.get(`/api/admin/permissions/${permission.id}/roles`)
-    selectedRoleIds.value = res.data.map((r: any) => r.id)
-  } catch (err: any) {
-    console.error('Failed to fetch roles for permission', err)
-    error.value = 'Failed to load roles'
-  } finally {
-    loadingRoles.value = false
-  }
+  await fetchPermissionRoles(permission.id)
 }
 
 const handleAssignRoles = async () => {
   if (!selectedPermission.value) return
-  submitting.value = true
-  error.value = ''
-  try {
-    await api.post(`/api/admin/permissions/${selectedPermission.value.id}/roles`, {
-      role_ids: selectedRoleIds.value
-    })
+  const success = await syncPermissionRoles(selectedPermission.value.id)
+  if (success) {
     showAssignModal.value = false
-  } catch (err: any) {
-    error.value = err.response?.data?.message || 'Failed to update roles'
-  } finally {
-    submitting.value = false
-  }
-}
-
-const fetchPermissions = async () => {
-  loading.value = true
-  try {
-    const response = await api.get('/api/admin/permissions')
-    permissions.value = response.data
-  } catch (err: any) {
-    console.error('Failed to fetch permissions', err)
-    error.value = 'Failed to load permissions. Please try again.'
-  } finally {
-    loading.value = false
   }
 }
 
@@ -124,31 +73,26 @@ const openEditModal = (permission: Permission) => {
 }
 
 const handleSubmit = async () => {
-  submitting.value = true
-  error.value = ''
-  try {
-    if (modalMode.value === 'create') {
-      await api.post('/api/admin/permissions', form.value)
-    } else {
-      await api.put(`/api/admin/permissions/${form.value.id}`, form.value)
-    }
+  const { id, ...payload } = form.value
+  let success = false
+
+  if (modalMode.value === 'create') {
+    success = await createPermission(payload)
+  } else if (id !== null) {
+    success = await updatePermission(id, payload)
+  }
+
+  if (success) {
     showModal.value = false
-    fetchPermissions()
-  } catch (err: any) {
-    error.value = err.response?.data?.message || 'Something went wrong'
-  } finally {
-    submitting.value = false
   }
 }
 
-const deletePermission = async (id: number) => {
+const handleDelete = async (id: number) => {
   if (!confirm('Are you sure you want to delete this permission? This may affect user access.')) return
 
-  try {
-    await api.delete(`/api/admin/permissions/${id}`)
-    fetchPermissions()
-  } catch (err: any) {
-    alert(err.response?.data?.message || 'Failed to delete permission')
+  const result = await deletePermissionAction(id)
+  if (!result.success) {
+    alert(result.message)
   }
 }
 
@@ -262,7 +206,7 @@ onMounted(fetchPermissions)
                     <Edit2 :size="16" />
                   </button>
                   <button 
-                    @click="deletePermission(permission.id)"
+                    @click="handleDelete(permission.id)"
                     class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                     title="Delete Permission"
                   >
