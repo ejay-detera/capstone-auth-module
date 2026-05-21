@@ -18,6 +18,7 @@ Identity management is a fundamental component of modern software architecture. 
 Detailed guides regarding the configuration, development, and contribution processes are available in the documentation directory:
 
 - **[Quickstart Guide](./docs/Quickstart.md)**: Procedures for local environment initialization.
+- **[Docker Setup Guide](./DOCKER.md)**: Comprehensive guide on container orchestration, setup, and troubleshooting.
 - **[Developer Onboarding](./docs/Onboarding.md)**: Technical overview of the architecture and development practices.
 - **[Coding Guidelines](./docs/CodingGuidelines.md)**: Standards for code quality, scalability, and consistency.
 - **[Contributing Guide](./docs/Contributing.md)**: Protocols for issue reporting and pull request submission.
@@ -109,6 +110,8 @@ The project utilizes a decoupled client-server architecture to ensure strict sep
    ```
 
 ### Deployment via Docker
+
+For a detailed setup guide, command reference, and common troubleshooting steps (especially for socket/connection errors), refer to the **[Docker Setup & Management Guide](./DOCKER.md)**.
 
 1. Build and initialize services:
 
