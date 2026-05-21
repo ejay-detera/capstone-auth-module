@@ -1,7 +1,13 @@
-import CryptoJS from 'crypto-js';
+import * as CryptoJS from 'crypto-js';
 
-// The key must be exactly 32 bytes for AES-256
-const KEY = import.meta.env.VITE_INTERNAL_ENCRYPTION_KEY || '9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b';
+const KEY = import.meta.env.VITE_INTERNAL_ENCRYPTION_KEY;
+
+if (!KEY || KEY.length !== 32) {
+  throw new Error(
+    'VITE_INTERNAL_ENCRYPTION_KEY is required and must be exactly 32 characters long. ' +
+    'Please set it in your environment config.'
+  );
+}
 
 /**
  * Encrypts a JSON object into a base64 string: base64(iv + ciphertext)

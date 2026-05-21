@@ -166,7 +166,7 @@ onMounted(fetchPermissions)
       
       <button 
         @click="openCreateModal"
-        class="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 active:scale-95"
+        class="inline-flex items-center gap-2 bg-gradient-to-r from-[#252578] to-[#3b82f6] text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg transition-all active:scale-95"
       >
         <Plus :size="18" />
         Add New Permission
@@ -233,7 +233,7 @@ onMounted(fetchPermissions)
             >
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                  <div class="w-8 h-8 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center group-hover:bg-[#252578] group-hover:text-white transition-colors">
                     <Shield :size="16" />
                   </div>
                   <span class="font-bold text-slate-900">{{ permission.name }}</span>
@@ -249,14 +249,14 @@ onMounted(fetchPermissions)
                 <div class="flex items-center justify-end gap-2">
                   <button 
                     @click="openAssignModal(permission)"
-                    class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                    class="p-2 text-slate-400 hover:text-[#252578] hover:bg-blue-50 rounded-lg transition-all"
                     title="Assign to Roles"
                   >
                     <Users :size="16" />
                   </button>
                   <button 
                     @click="openEditModal(permission)"
-                    class="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                    class="p-2 text-slate-400 hover:text-[#252578] hover:bg-blue-50 rounded-lg transition-all"
                     title="Edit Permission"
                   >
                     <Edit2 :size="16" />
@@ -278,7 +278,7 @@ onMounted(fetchPermissions)
 
     <!-- Assign to Roles Modal -->
     <div v-if="showAssignModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showAssignModal = false"></div>
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showAssignModal = false"></div>
       
       <div class="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -311,13 +311,13 @@ onMounted(fetchPermissions)
                 :key="role.id"
                 class="relative flex items-center gap-3 p-4 rounded-2xl border-2 transition-all cursor-pointer group"
                 :class="selectedRoleIds.includes(role.id) 
-                  ? 'border-indigo-600 bg-indigo-50/30' 
+                  ? 'border-[#252578] bg-blue-50/30' 
                   : 'border-slate-100 hover:border-slate-200 bg-white'"
               >
                 <div 
                   class="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all"
                   :class="selectedRoleIds.includes(role.id)
-                    ? 'bg-indigo-600 border-indigo-600 text-white'
+                    ? 'bg-[#252578] border-[#252578] text-white'
                     : 'border-slate-300 bg-white group-hover:border-slate-400'"
                 >
                   <Check v-if="selectedRoleIds.includes(role.id)" :size="14" stroke-width="3" />
@@ -336,14 +336,14 @@ onMounted(fetchPermissions)
               <button 
                 type="button" 
                 @click="showAssignModal = false"
-                class="flex-1 px-6 py-3 border-2 border-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all"
+                class="flex-1 px-6 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
               >
                 Cancel
               </button>
               <button 
                 @click="handleAssignRoles"
                 :disabled="submitting"
-                class="flex-1 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20"
+                class="flex-1 px-6 py-3 bg-gradient-to-r from-[#252578] to-[#3b82f6] text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <Loader2 v-if="submitting" class="animate-spin" :size="18" />
                 {{ submitting ? 'Updating...' : 'Save Assignments' }}
@@ -356,7 +356,7 @@ onMounted(fetchPermissions)
 
     <!-- Create/Edit Modal -->
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showModal = false"></div>
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showModal = false"></div>
       
       <div class="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
@@ -410,14 +410,14 @@ onMounted(fetchPermissions)
             <button 
               type="button" 
               @click="showModal = false"
-              class="flex-1 px-6 py-3 border-2 border-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all"
+              class="flex-1 px-6 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button 
               type="submit"
               :disabled="submitting"
-              class="flex-1 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20"
+              class="flex-1 px-6 py-3 bg-gradient-to-r from-[#252578] to-[#3b82f6] text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Loader2 v-if="submitting" class="animate-spin" :size="18" />
               {{ submitting ? 'Saving...' : (modalMode === 'create' ? 'Add Permission' : 'Save Changes') }}

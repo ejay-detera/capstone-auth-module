@@ -3,20 +3,18 @@ import { useRouter } from 'vue-router'
 import { 
   Users, 
   LayoutDashboard, 
-  LogOut, 
-  Settings,
   Bell,
-  Search,
   UserPlus,
   Shield,
   Key,
   Building2
 } from 'lucide-vue-next'
 
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 const router = useRouter()
 const user = JSON.parse(localStorage.getItem('user') || '{}')
+const dropdownOpen = ref(false)
 
 const handleLogout = () => {
   localStorage.removeItem('access_token')
@@ -51,123 +49,107 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 flex font-sans">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen">
-      <div class="p-6 border-b border-slate-100">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
-            <span class="text-white font-bold text-xl">{{ user?.email?.substring(0, 1).toUpperCase() || 'U' }}</span>
-          </div>
-          <div>
-            <h2 class="font-bold text-slate-900 leading-none">Demo Frontend</h2>
-            <p class="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-1">Auth Module</p>
-          </div>
-        </div>
-      </div>
-
-      <nav class="flex-1 p-4 space-y-1">
+  <div class="min-h-screen bg-slate-50 font-sans">
+    <!-- Sidebar (Fixed overlay) -->
+    <aside class="fixed top-0 left-0 h-screen w-[88px] hover:w-64 bg-[#252578] text-white transition-all duration-300 ease-in-out rounded-r-3xl shadow-[0_8px_30px_rgba(37,37,120,0.2)] flex flex-col overflow-hidden group z-20">
+      <nav class="flex flex-col gap-4 mt-24 px-3">
         <router-link 
           to="/admin" 
-          class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all group"
-          active-class="bg-slate-900 !text-white shadow-lg shadow-slate-900/10"
+          class="flex items-center gap-4 px-5 py-3 rounded-2xl transition-all duration-200 w-full hover:bg-white/10 whitespace-nowrap"
+          active-class="bg-[#3b82f6] shadow-[0_0_15px_rgba(59,130,246,0.5)] !hover:bg-[#3b82f6]"
         >
-          <LayoutDashboard :size="20" class="group-hover:scale-110 transition-transform" />
-          Dashboard
+          <LayoutDashboard :size="24" class="flex-shrink-0" />
+          <span class="font-semibold text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+            Dashboard
+          </span>
         </router-link>
         
         <router-link 
           to="/admin/users/create" 
-          class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all group"
-          active-class="bg-slate-900 !text-white shadow-lg shadow-slate-900/10"
+          class="flex items-center gap-4 px-5 py-3 rounded-2xl transition-all duration-200 w-full hover:bg-white/10 whitespace-nowrap"
+          active-class="bg-[#3b82f6] shadow-[0_0_15px_rgba(59,130,246,0.5)] !hover:bg-[#3b82f6]"
         >
-          <UserPlus :size="20" class="group-hover:scale-110 transition-transform" />
-          Create User
+          <UserPlus :size="24" class="flex-shrink-0" />
+          <span class="font-semibold text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+            Create User
+          </span>
         </router-link>
 
         <router-link 
           to="/admin/users" 
-          class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all group"
-          active-class="bg-slate-900 !text-white shadow-lg shadow-slate-900/10"
+          class="flex items-center gap-4 px-5 py-3 rounded-2xl transition-all duration-200 w-full hover:bg-white/10 whitespace-nowrap"
+          active-class="bg-[#3b82f6] shadow-[0_0_15px_rgba(59,130,246,0.5)] !hover:bg-[#3b82f6]"
         >
-          <Users :size="20" class="group-hover:scale-110 transition-transform" />
-          User Management
+          <Users :size="24" class="flex-shrink-0" />
+          <span class="font-semibold text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+            User Management
+          </span>
         </router-link>
 
         <router-link 
           to="/admin/roles" 
-          class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all group"
-          active-class="bg-slate-900 !text-white shadow-lg shadow-slate-900/10"
+          class="flex items-center gap-4 px-5 py-3 rounded-2xl transition-all duration-200 w-full hover:bg-white/10 whitespace-nowrap"
+          active-class="bg-[#3b82f6] shadow-[0_0_15px_rgba(59,130,246,0.5)] !hover:bg-[#3b82f6]"
         >
-          <Shield :size="20" class="group-hover:scale-110 transition-transform" />
-          Role Management
+          <Shield :size="24" class="flex-shrink-0" />
+          <span class="font-semibold text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+            Role Management
+          </span>
         </router-link>
 
         <router-link 
           to="/admin/permissions" 
-          class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all group"
-          active-class="bg-slate-900 !text-white shadow-lg shadow-slate-900/10"
+          class="flex items-center gap-4 px-5 py-3 rounded-2xl transition-all duration-200 w-full hover:bg-white/10 whitespace-nowrap"
+          active-class="bg-[#3b82f6] shadow-[0_0_15px_rgba(59,130,246,0.5)] !hover:bg-[#3b82f6]"
         >
-          <Key :size="20" class="group-hover:scale-110 transition-transform" />
-          Permission Management
+          <Key :size="24" class="flex-shrink-0" />
+          <span class="font-semibold text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+            Permissions
+          </span>
         </router-link>
 
         <router-link 
           to="/admin/departments" 
-          class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all group"
-          active-class="bg-slate-900 !text-white shadow-lg shadow-slate-900/10"
+          class="flex items-center gap-4 px-5 py-3 rounded-2xl transition-all duration-200 w-full hover:bg-white/10 whitespace-nowrap"
+          active-class="bg-[#3b82f6] shadow-[0_0_15px_rgba(59,130,246,0.5)] !hover:bg-[#3b82f6]"
         >
-          <Building2 :size="20" class="group-hover:scale-110 transition-transform" />
-          Department Management
+          <Building2 :size="24" class="flex-shrink-0" />
+          <span class="font-semibold text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+            Departments
+          </span>
         </router-link>
       </nav>
-
-      <div class="p-4 border-t border-slate-100">
-        <button 
-          @click="handleLogout"
-          class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 rounded-xl hover:bg-red-50 transition-all group"
-        >
-          <LogOut :size="20" class="group-hover:translate-x-1 transition-transform" />
-          Logout
-        </button>
-      </div>
     </aside>
 
+    <!-- Header (Fixed overlay) -->
+    <header class="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-md border-b border-gray-200 z-10 px-6 py-4 flex items-center justify-between shadow-sm">
+      <!-- Logo & Title -->
+      <div class="flex items-center gap-4 pl-24">
+         <div class="flex items-center gap-3">
+           <span class="px-3 py-1 bg-gray-100 rounded-lg text-sm border border-gray-300 font-bold text-slate-700">[ LOGO ]</span>
+           <div class="hidden md:flex flex-col text-sm leading-tight">
+             <span class="text-[#252578] font-semibold">SCIENTIFIC BIOTECH</span>
+             <span class="text-xs text-gray-500 font-normal">SPECIALTIES, INC.</span>
+           </div>
+         </div>
+      </div>
+
+      <!-- Right Actions -->
+      <div class="flex items-center gap-6">
+
+        <button class="relative p-2 text-[#252578] hover:bg-gray-100 rounded-full transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+        </button>
+      </div>
+    </header>
+
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0">
-      <!-- Header -->
-      <header class="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-10">
-        <div class="flex items-center bg-slate-100 px-4 py-2 rounded-xl w-96 group focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-900/10 border border-transparent focus-within:border-slate-200 transition-all">
-          <Search :size="18" class="text-slate-400 mr-2" />
-          <input 
-            type="text" 
-            placeholder="Search users, roles, activities..." 
-            class="bg-transparent border-none text-sm focus:outline-none w-full text-slate-900 placeholder:text-slate-500"
-          />
-        </div>
-
-        <div class="flex items-center gap-4">
-          <button class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-500 relative transition-colors">
-            <Bell :size="20" />
-            <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-          </button>
-          
-          <div class="h-8 w-[1px] bg-slate-200 mx-2"></div>
-          
-          <div class="flex items-center gap-3">
-            <div class="text-right hidden sm:block">
-              <p class="text-sm font-bold text-slate-900 leading-none">{{ user?.email || 'User' }}</p>
-              <p class="text-[11px] text-slate-500 font-medium mt-1">{{ user?.profile?.role?.name || user?.role || 'Unknown Role' }}</p>
-            </div>
-            <div class="w-10 h-10 bg-gradient-to-tr from-slate-200 to-slate-100 rounded-xl border border-slate-200 flex items-center justify-center font-bold text-slate-700 shadow-sm">
-              {{ user?.email?.substring(0, 2).toUpperCase() || 'U' }}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <!-- Content Area -->
-      <div class="p-8 max-w-7xl w-full mx-auto">
+    <!-- ml-[88px] accounts for the collapsed sidebar width. pt-24 accounts for the fixed header height. -->
+    <main class="ml-[88px] pt-24 p-8">
+      <div class="max-w-7xl w-full mx-auto">
         <router-view v-slot="{ Component }">
           <transition 
             name="fade" 

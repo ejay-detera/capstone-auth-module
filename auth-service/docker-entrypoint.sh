@@ -13,16 +13,22 @@ until nc -z "$DB_HOST" "$DB_PORT" > /dev/null 2>&1; do
 done
 echo "Database is ready!"
 
-# Clear cache and discover packages
-echo "Clearing cache..."
-php artisan cache:clear
-php artisan optimize:clear
-echo "Discovering packages..."
-php artisan package:discover --ansi
+if [ "${SKIP_MIGRATIONS}" != "true" ]; then
+  # Discover packages
+  echo "Discovering packages..."
+  php artisan package:discover --ansi
 
-# Run migrations
-echo "Running migrations..."
-php artisan migrate --force
+  # Run migrations
+  echo "Running migrations..."
+  php artisan migrate --force
+
+  # Clear cache after migrations
+  echo "Clearing cache..."
+  php artisan cache:clear
+  php artisan optimize:clear
+else
+  echo "Skipping initialization tasks (SKIP_MIGRATIONS is set to true)..."
+fi
 
 # Start the application
 echo "Starting application..."

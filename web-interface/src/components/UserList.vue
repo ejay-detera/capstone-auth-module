@@ -135,7 +135,7 @@ const handleAssignRole = async () => {
       </div>
       <router-link 
         to="/admin/users/create"
-        class="inline-flex items-center justify-center h-11 px-6 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10"
+        class="inline-flex items-center justify-center h-11 px-6 rounded-xl bg-gradient-to-r from-[#252578] to-[#3b82f6] text-white text-sm font-semibold hover:shadow-lg transition-all"
       >
         Add New User
       </router-link>
@@ -295,7 +295,7 @@ const handleAssignRole = async () => {
 
     <!-- Role Assignment Modal -->
     <div v-if="showRoleModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showRoleModal = false"></div>
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showRoleModal = false"></div>
       
       <div class="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -343,14 +343,14 @@ const handleAssignRole = async () => {
           <div class="pt-2 flex gap-3">
             <button 
               @click="showRoleModal = false"
-              class="flex-1 px-6 py-3 border-2 border-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all"
+              class="flex-1 px-6 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button 
               @click="handleAssignRole"
               :disabled="isAssigning || !selectedRoleId"
-              class="flex-1 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20"
+              class="flex-1 px-6 py-3 bg-gradient-to-r from-[#252578] to-[#3b82f6] text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Loader2 v-if="isAssigning" class="animate-spin" :size="18" />
               {{ isAssigning ? 'Updating...' : 'Confirm Assignment' }}

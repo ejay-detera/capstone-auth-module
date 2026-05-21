@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/lib/api'
-import { Loader2, Eye, EyeOff, CheckCircle2 } from 'lucide-vue-next'
+import { Loader2, Eye, EyeOff, CheckCircle2, LockKeyhole } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -57,78 +57,290 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-slate-50 px-4 font-sans">
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-10 transform transition-all">
+  <div class="reset-wrapper">
+    <div class="modal-box">
       
-      <div v-if="isSuccess" class="text-center animate-in zoom-in duration-300">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 mb-6">
-          <CheckCircle2 class="h-8 w-8 text-emerald-600" />
+      <!-- Success State -->
+      <template v-if="isSuccess">
+        <div class="modal-content animate-in">
+          <div class="success-icon-wrap">
+            <CheckCircle2 :size="32" class="success-icon" />
+          </div>
+          <h2 class="modal-title">Password Reset!</h2>
+          <p class="modal-subtitle">Your password has been updated. Redirecting to login...</p>
         </div>
-        <h1 class="text-2xl font-bold text-slate-900">Password reset!</h1>
-        <p class="text-slate-500 mt-2">Your password has been updated. Redirecting to login...</p>
-      </div>
+      </template>
 
-      <div v-else>
-        <div class="mb-8 text-center">
-          <h1 class="text-3xl font-bold tracking-tight text-slate-900">Set new password</h1>
-          <p class="text-slate-500 mt-2">Please choose a strong password to secure your account.</p>
-        </div>
+      <!-- Form State -->
+      <template v-else>
+        <div class="modal-content">
+          <div class="otp-icon-wrap">
+            <LockKeyhole :size="38" class="otp-icon" />
+          </div>
 
-        <form @submit.prevent="handleSubmit" class="space-y-5">
-          <!-- Password Field -->
-          <div class="space-y-2">
-            <label for="password" class="text-sm font-semibold text-slate-700">New Password</label>
-            <div class="relative">
-              <input
-                id="password"
-                v-model="form.password"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="••••••••"
-                class="flex h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 pr-12"
-                :class="{ 'border-red-500': errors.password }"
-                required
-              />
-              <button
-                type="button"
-                @click="togglePassword"
-                class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <Eye v-if="!showPassword" :size="20" />
-                <EyeOff v-else :size="20" />
-              </button>
+          <h2 class="modal-title">Set New Password</h2>
+          <p class="modal-subtitle">
+            Please choose a strong password to secure your account.
+          </p>
+
+          <div v-if="generalError" class="modal-error" role="alert">{{ generalError }}</div>
+
+          <form @submit.prevent="handleSubmit" class="form-wrapper">
+            <!-- Password Field -->
+            <div class="input-group">
+              <div class="relative w-full">
+                <input
+                  id="password"
+                  v-model="form.password"
+                  :type="showPassword ? 'text' : 'password'"
+                  placeholder="New Password"
+                  class="modal-input"
+                  :class="{ 'modal-input--error': errors.password }"
+                  required
+                />
+                <button
+                  type="button"
+                  @click="togglePassword"
+                  class="password-toggle"
+                >
+                  <Eye v-if="!showPassword" :size="20" />
+                  <EyeOff v-else :size="20" />
+                </button>
+              </div>
+              <p v-if="errors.password" class="error-text">
+                {{ errors.password[0] }}
+              </p>
             </div>
-            <p v-if="errors.password" class="text-xs font-medium text-red-500 ml-1">
-              {{ errors.password[0] }}
-            </p>
-          </div>
 
-          <!-- Confirm Password Field -->
-          <div class="space-y-2">
-            <label for="password_confirmation" class="text-sm font-semibold text-slate-700">Confirm New Password</label>
-            <input
-              id="password_confirmation"
-              v-model="form.password_confirmation"
-              type="password"
-              placeholder="••••••••"
-              class="flex h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
-              required
-            />
-          </div>
+            <!-- Confirm Password Field -->
+            <div class="input-group">
+              <div class="relative w-full">
+                <input
+                  id="password_confirmation"
+                  v-model="form.password_confirmation"
+                  type="password"
+                  placeholder="Confirm New Password"
+                  class="modal-input"
+                  required
+                />
+              </div>
+            </div>
 
-          <div v-if="generalError" class="p-4 rounded-xl bg-red-50 border border-red-100 text-sm font-medium text-red-700">
-            {{ generalError }}
-          </div>
+            <button
+              type="submit"
+              class="modal-btn"
+              :disabled="isLoading || !!generalError"
+            >
+              <Loader2 v-if="isLoading" class="btn-spinner animate-spin" />
+              {{ isLoading ? 'Updating Password...' : 'Reset Password' }}
+            </button>
+          </form>
 
-          <button
-            type="submit"
-            :disabled="isLoading || !!generalError"
-            class="w-full h-12 inline-flex items-center justify-center rounded-xl bg-slate-900 text-slate-50 font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:opacity-50 transition-all shadow-lg shadow-slate-900/10 mt-2"
-          >
-            <Loader2 v-if="isLoading" class="mr-2 h-5 w-5 animate-spin" />
-            {{ isLoading ? 'Updating Password...' : 'Reset Password' }}
-          </button>
-        </form>
-      </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
+
+<style scoped>
+.reset-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f4f8;
+  padding: 16px;
+}
+
+.modal-box {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(37, 37, 120, 0.18);
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 40px 36px;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+  animation: slideUp 0.22s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(18px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.animate-in {
+  animation: zoomIn 0.3s ease;
+}
+
+@keyframes zoomIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.otp-icon-wrap {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(37, 37, 120, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.otp-icon { color: #252578; }
+
+.modal-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #252578;
+  margin: 0 0 10px 0;
+  line-height: 1.2;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 22px 0;
+  line-height: 1.6;
+}
+
+.modal-error {
+  width: 100%;
+  background: #fff5f5;
+  border: 1px solid #f8c0c0;
+  color: #c0392b;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.form-wrapper {
+  width: 100%;
+}
+
+.input-group {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+.relative {
+  position: relative;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  transition: color 0.2s;
+}
+
+.password-toggle:hover {
+  color: #252578;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid rgba(3, 4, 94, 0.25);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: "Poppins", sans-serif;
+  color: #333;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.modal-input[type="password"],
+.modal-input[type="text"] {
+  padding-right: 48px;
+}
+
+.modal-input:focus     { border-color: #252578; }
+.modal-input--error    { border-color: #e74c3c; }
+
+.error-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #e74c3c;
+  margin: 4px 0 0 4px;
+}
+
+.modal-btn {
+  width: 100%;
+  padding: 14px;
+  background: #252578;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: "Poppins", sans-serif;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.modal-btn:hover:not(:disabled) { opacity: 0.88; }
+
+.modal-btn:disabled {
+  background: #9999bb;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.btn-spinner {
+  width: 20px;
+  height: 20px;
+  color: white;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.success-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #d1fae5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.success-icon { color: #059669; }
+</style>
