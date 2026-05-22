@@ -7,6 +7,11 @@ use App\Services\RolePermissionService;
 use Illuminate\Http\Request;
 use App\Http\Requests\ResetPasswordRequest;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -30,106 +35,26 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $throttleKey = 'login:' . Str::lower($request->email) . '|' . $request->ip();
+        $result = $this->authService->attemptLogin(
+            $request->email,
+            $request->password,
+            $request->ip(),
+            $request->userAgent()
+        );
 
-        if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
-            $seconds = RateLimiter::availableIn($throttleKey);
-            return response()->json([
-                'message' => 'Too many login attempts. Please try again in ' . ceil($seconds / 60) . ' minutes.',
-                'errors' => ['email' => ['Account temporarily locked.']]
-            ], 429);
-        }
-
-        $user = User::with(['profile.role', 'profile.department'])->where('email', $request->email)->first();
-
-        if (!$user || !Hash::check($request->password, $user->credentials->password_hash)) {
-            RateLimiter::hit($throttleKey, 900); // 15 minutes lockout
-
-            DB::table('audit_logs')->insert([
-                'actor_id' => $user ? $user->id : null,
-                'action' => 'Login Failed',
-                'description' => 'Failed login attempt for email: ' . $request->email,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'action_date' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            if ($user && $user->profile?->department?->name === 'Finance') {
-                $this->pushToCrmsAuditLog('Login Failed', 'Session', $user->id, [
-                    'email' => $request->email,
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                ]);
-            }
-
-            throw ValidationException::withMessages([
-                'email' => ['Invalid email or password.'],
-            ]);
-        }
-
-        RateLimiter::clear($throttleKey);
-
-        // Success logic
-        $accessToken = $user->createToken('auth_token')->plainTextToken;
-        $refreshTokenPlain = Str::random(128);
-        $refreshTokenHash = hash('sha256', $refreshTokenPlain);
-        $sessionId = (string) Str::uuid();
-
-        $ip = $request->ip();
-        $userAgent = $request->userAgent();
-        $email = $request->email;
-
-        // Write security-critical records synchronously before sending the response.
-        // defer() is NOT safe here — if the PHP process restarts between the response
-        // being sent and defer() executing, the client holds a refresh_token cookie
-        // with no matching DB record, causing all future requests to fail as "invalid".
-        DB::table('refresh_tokens')->insert([
-            'user_id' => $user->id,
-            'token_hash' => $refreshTokenHash,
-            'ip_address' => $ip,
-            'device_info' => $userAgent,
-            'expires_at' => now()->addDays(30),
-            'created_at' => now(),
-        ]);
-
-        DB::table('user_sessions')->insert([
-            'user_id' => $user->id,
-            'session_id' => $sessionId,
-            'ip_address' => $ip,
-            'user_agent' => $userAgent,
-            'last_active_at' => now(),
-            'is_active' => true,
-            'created_at' => now(),
-        ]);
-
-        // Audit log is non-critical — deferring is fine here.
-        defer(function () use ($user, $ip, $userAgent, $sessionId, $email) {
-            DB::table('audit_logs')->insert([
-                'actor_id' => $user->id,
-                'action' => 'Login Success',
-                'description' => 'Successful login for email: ' . $email,
-                'ip_address' => $ip,
-                'user_agent' => $userAgent,
-                'action_date' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            if ($user->profile?->department?->name === 'Finance') {
+        $user = $result['user'];
+        if ($user->profile?->department?->name === 'Finance') {
+            $ip = $request->ip();
+            $userAgent = $request->userAgent();
+            $email = $request->email;
+            defer(function () use ($user, $ip, $userAgent, $email) {
                 $this->pushToCrmsAuditLog('Login Success', 'Session', $user->id, [
                     'email' => $email,
                     'ip_address' => $ip,
                     'user_agent' => $userAgent,
                 ]);
-            }
-        });
-
-        // Load permissions for the CRMS system specifically for this response
-        $permissions = $user->profile?->role?->permissions()
-            ?->where('system', 'crms')
-            ?->pluck('slug') ?? collect();
+            });
+        }
 
         return response()->json([
             'access_token' => $result['access_token'],
@@ -198,15 +123,8 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $refreshTokenPlain = $request->cookie('refresh_token');
-
-        if ($refreshTokenPlain) {
-            $tokenHash = hash('sha256', $refreshTokenPlain);
-            DB::table('refresh_tokens')
-                ->where('token_hash', $tokenHash)
-                ->update(['is_revoked' => true]);
-        }
-
         $user = $request->user();
+
         if ($user) {
             $user->load(['profile.department']);
             $department = $user->profile?->department?->name;
@@ -229,13 +147,11 @@ class AuthController extends Controller
                     'user_agent' => $request->userAgent(),
                 ]);
             }
-
-            $user->currentAccessToken()->delete();
         }
 
         $sessionId = $request->cookie('session_id') ?? $request->header('X-Session-ID');
 
-        $this->authService->logout($refreshTokenPlain, $sessionId, $request->user());
+        $this->authService->logout($refreshTokenPlain, $sessionId, $user);
 
         return response()->json(['message' => 'Successfully logged out.'])
             ->withoutCookie('refresh_token')

@@ -22,6 +22,11 @@ class RolePolicy
             return true;
         }
 
+        $department = DB::table('departments')->where('id', $user->profile->department_id)->first();
+        if ($role && $role->name === 'Admin' && $department && $department->name === 'Finance') {
+            return true;
+        }
+
         return DB::table('role_permission')
             ->join('permissions', 'role_permission.permission_id', '=', 'permissions.id')
             ->where('role_permission.role_id', $user->profile->role_id)

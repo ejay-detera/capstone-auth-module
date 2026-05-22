@@ -15,10 +15,10 @@ class RoleController extends Controller
         $this->rolePermissionService = $rolePermissionService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         Gate::authorize('manage-roles');
-        return response()->json($this->rolePermissionService->getRolesList());
+        return response()->json($this->rolePermissionService->getRolesList($request->user()));
     }
 
     public function store(Request $request)
@@ -40,10 +40,10 @@ class RoleController extends Controller
         return response()->json($role, 201);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         Gate::authorize('manage-roles');
-        return response()->json($this->rolePermissionService->getRole((int) $id));
+        return response()->json($this->rolePermissionService->getRole((int) $id, $request->user()));
     }
 
     public function update(Request $request, $id)
@@ -80,10 +80,10 @@ class RoleController extends Controller
         return response()->json(['message' => 'Role deleted successfully.']);
     }
 
-    public function users($id)
+    public function users(Request $request, $id)
     {
         Gate::authorize('manage-roles');
-        return response()->json($this->rolePermissionService->getRoleUsers((int) $id));
+        return response()->json($this->rolePermissionService->getRoleUsers((int) $id, $request->user()));
     }
 
     public function assignRole(Request $request, $userId)
@@ -108,10 +108,10 @@ class RoleController extends Controller
         ]);
     }
 
-    public function permissions($id)
+    public function permissions(Request $request, $id)
     {
         Gate::authorize('manage-roles');
-        return response()->json($this->rolePermissionService->getRolePermissions((int) $id));
+        return response()->json($this->rolePermissionService->getRolePermissions((int) $id, $request->user()));
     }
 
     public function syncPermissions(Request $request, $id)

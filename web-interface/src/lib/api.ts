@@ -65,7 +65,8 @@ api.interceptors.response.use(
       error.response?.status === 401 &&
       !originalRequest._retried &&
       !originalRequest.url?.includes('/api/refresh') &&
-      !originalRequest.url?.includes('/api/login')
+      !originalRequest.url?.includes('/api/login') &&
+      !originalRequest.url?.includes('/api/logout')
     ) {
       originalRequest._retried = true
 

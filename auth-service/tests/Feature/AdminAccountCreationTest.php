@@ -63,7 +63,7 @@ class AdminAccountCreationTest extends TestCase
     {
         [$user, $sessionId] = $this->getUserWithSession('finance-admin@example.com');
         $financeDept = Department::where('name', 'Finance')->first();
-        $role = Role::where('name', 'Manager')->first();
+        $role = Role::where('name', 'Finance Manager')->first();
 
         $response = $this->actingAs($user)
                          ->withHeader('X-Session-ID', $sessionId)
@@ -83,7 +83,7 @@ class AdminAccountCreationTest extends TestCase
     {
         [$user, $sessionId] = $this->getUserWithSession('finance-admin@example.com');
         $itDept = Department::where('name', 'IT')->first();
-        $role = Role::where('name', 'Manager')->first();
+        $role = Role::where('name', 'Finance Manager')->first();
 
         $response = $this->actingAs($user)
                          ->withHeader('X-Session-ID', $sessionId)
@@ -116,6 +116,6 @@ class AdminAccountCreationTest extends TestCase
                          ]);
 
         $response->assertStatus(403)
-                 ->assertJsonFragment(['message' => 'You are only authorized to assign Manager or Employee roles.']);
+                 ->assertJsonFragment(['message' => 'You are only authorized to assign Finance Manager or Finance Employee roles.']);
     }
 }

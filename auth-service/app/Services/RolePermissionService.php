@@ -44,7 +44,7 @@ class RolePermissionService
 
             if ($actor && !in_array($actor->profile?->role?->name, ['IT Admin', 'Super Admin'])) {
                 if ($actor->profile?->department?->name === 'Finance' && $actor->profile?->role?->name === 'Admin') {
-                    $allowed = ['Manager', 'Employee'];
+                    $allowed = ['Finance Manager', 'Finance Employee'];
                     $roles = array_filter($roles, function($r) use ($allowed) {
                         return in_array($r['name'], $allowed);
                     });
@@ -60,20 +60,40 @@ class RolePermissionService
         }
     }
 
-    public function getRolesList(): array
+    public function getRolesList(?User $actor = null): array
     {
         try {
-            return Cache::remember('roles:list', 3600, function () {
+            $roles = Cache::remember('roles:list', 3600, function () {
                 return $this->roleRepo->all();
             });
         } catch (\Exception $e) {
             Log::warning('Cache unavailable for roles:list, querying DB directly', ['error' => $e->getMessage()]);
-            return $this->roleRepo->all();
+            $roles = $this->roleRepo->all();
         }
+
+        if ($actor && !in_array($actor->profile?->role?->name, ['IT Admin', 'Super Admin'])) {
+            if ($actor->profile?->department?->name === 'Finance' && $actor->profile?->role?->name === 'Admin') {
+                $allowed = ['Finance Manager', 'Finance Employee'];
+                $roles = array_filter($roles, function($r) use ($allowed) {
+                    return in_array($r['name'], $allowed);
+                });
+                $roles = array_values($roles);
+            } else {
+                $roles = [];
+            }
+        }
+
+        return $roles;
     }
 
     public function createRole(array $data, ?User $actor, string $ip, string $userAgent): Role
     {
+        if ($actor && !in_array($actor->profile?->role?->name, ['IT Admin', 'Super Admin'])) {
+            throw new HttpResponseException(
+                response()->json(['message' => 'Unauthorized to manage role configuration.'], 403)
+            );
+        }
+
         $role = $this->roleRepo->create($data);
 
         try { Cache::forget('roles:list'); } catch (\Exception $e) {}
@@ -83,17 +103,28 @@ class RolePermissionService
         return $role;
     }
 
-    public function getRole(int $id): Role
+    public function getRole(int $id, ?User $actor = null): Role
     {
         $role = $this->roleRepo->findById($id);
         if (!$role) {
             throw (new \Illuminate\Database\Eloquent\ModelNotFoundException)->setModel(Role::class, $id);
+        }
+        if ($actor && !$this->isRoleAllowedForActor($role, $actor)) {
+            throw new HttpResponseException(
+                response()->json(['message' => 'Unauthorized to access this role.'], 403)
+            );
         }
         return $role;
     }
 
     public function updateRole(int $id, array $data, ?User $actor, string $ip, string $userAgent): Role
     {
+        if ($actor && !in_array($actor->profile?->role?->name, ['IT Admin', 'Super Admin'])) {
+            throw new HttpResponseException(
+                response()->json(['message' => 'Unauthorized to manage role configuration.'], 403)
+            );
+        }
+
         $role = $this->roleRepo->findById($id);
         if (!$role) {
             throw (new \Illuminate\Database\Eloquent\ModelNotFoundException)->setModel(Role::class, $id);
@@ -121,6 +152,12 @@ class RolePermissionService
 
     public function deleteRole(int $id, ?User $actor, string $ip, string $userAgent): void
     {
+        if ($actor && !in_array($actor->profile?->role?->name, ['IT Admin', 'Super Admin'])) {
+            throw new HttpResponseException(
+                response()->json(['message' => 'Unauthorized to manage role configuration.'], 403)
+            );
+        }
+
         if ($this->roleRepo->hasAssignedUsers($id)) {
             throw new HttpResponseException(
                 response()->json([
@@ -139,12 +176,25 @@ class RolePermissionService
         $this->auditLogRepo->log($actor ? $actor->id : null, 'ROLE_DELETED', "Deleted role: {$roleName}", $ip, $userAgent);
     }
 
-    public function getRoleUsers(int $roleId): LengthAwarePaginator
+    public function getRoleUsers(int $roleId, ?User $actor = null): LengthAwarePaginator
     {
         $role = $this->roleRepo->findById($roleId);
         if (!$role) {
             throw (new \Illuminate\Database\Eloquent\ModelNotFoundException)->setModel(Role::class, $roleId);
         }
+        if ($actor && !$this->isRoleAllowedForActor($role, $actor)) {
+            throw new HttpResponseException(
+                response()->json(['message' => 'Unauthorized to view users for this role.'], 403)
+            );
+        }
+
+        if ($actor && $actor->profile?->role?->name === 'Admin' && $actor->profile?->department?->name === 'Finance') {
+            return User::whereHas('profile', function ($query) use ($roleId, $actor) {
+                $query->where('role_id', $roleId)
+                      ->where('department_id', $actor->profile->department_id);
+            })->with(['profile.department'])->paginate(15);
+        }
+
         return $this->roleRepo->getUsers($roleId);
     }
 
@@ -158,6 +208,20 @@ class RolePermissionService
         $role = $this->roleRepo->findById($roleId);
         if (!$role) {
             throw (new \Illuminate\Database\Eloquent\ModelNotFoundException)->setModel(Role::class, $roleId);
+        }
+
+        if ($actor && !$this->isRoleAllowedForActor($role, $actor)) {
+            throw new HttpResponseException(
+                response()->json(['message' => 'Unauthorized to assign this role.'], 403)
+            );
+        }
+
+        if ($actor && $actor->profile?->role?->name === 'Admin' && $actor->profile?->department?->name === 'Finance') {
+            if ($user->profile?->department_id != $actor->profile->department_id) {
+                throw new HttpResponseException(
+                    response()->json(['message' => 'You can only assign roles to users in the Finance department.'], 403)
+                );
+            }
         }
 
         try {
@@ -191,11 +255,16 @@ class RolePermissionService
         }
     }
 
-    public function getRolePermissions(int $roleId): array
+    public function getRolePermissions(int $roleId, ?User $actor = null): array
     {
         $role = $this->roleRepo->findById($roleId);
         if (!$role) {
             throw (new \Illuminate\Database\Eloquent\ModelNotFoundException)->setModel(Role::class, $roleId);
+        }
+        if ($actor && !$this->isRoleAllowedForActor($role, $actor)) {
+            throw new HttpResponseException(
+                response()->json(['message' => 'Unauthorized to view permissions for this role.'], 403)
+            );
         }
         return $this->roleRepo->getRolePermissions($roleId);
     }
@@ -205,6 +274,12 @@ class RolePermissionService
         $role = $this->roleRepo->findById($roleId);
         if (!$role) {
             throw (new \Illuminate\Database\Eloquent\ModelNotFoundException)->setModel(Role::class, $roleId);
+        }
+
+        if ($actor && !$this->isRoleAllowedForActor($role, $actor)) {
+            throw new HttpResponseException(
+                response()->json(['message' => 'Unauthorized to modify permissions for this role.'], 403)
+            );
         }
 
         $this->roleRepo->syncPermissions($roleId, $permissionIds);
@@ -330,13 +405,27 @@ class RolePermissionService
         );
     }
 
-    public function getPermissionRoles(int $permissionId): Collection
+    public function getPermissionRoles(int $permissionId, ?User $actor = null): Collection
     {
         $permission = $this->permissionRepo->findById($permissionId);
         if (!$permission) {
             throw (new \Illuminate\Database\Eloquent\ModelNotFoundException)->setModel(Permission::class, $permissionId);
         }
-        return $this->permissionRepo->getRoles($permissionId);
+
+        $roles = $this->permissionRepo->getRoles($permissionId);
+
+        if ($actor && !in_array($actor->profile?->role?->name, ['IT Admin', 'Super Admin'])) {
+            if ($actor->profile?->role?->name === 'Admin' && $actor->profile?->department?->name === 'Finance') {
+                $allowedNames = ['Finance Manager', 'Finance Employee'];
+                $roles = $roles->filter(function($role) use ($allowedNames) {
+                    return in_array($role->name, $allowedNames);
+                });
+            } else {
+                return new Collection();
+            }
+        }
+
+        return $roles;
     }
 
     public function syncPermissionRoles(int $permissionId, array $roleIds, ?User $actor, string $ip, string $userAgent): void
@@ -344,6 +433,31 @@ class RolePermissionService
         $permission = $this->permissionRepo->findById($permissionId);
         if (!$permission) {
             throw (new \Illuminate\Database\Eloquent\ModelNotFoundException)->setModel(Permission::class, $permissionId);
+        }
+
+        if ($actor && !in_array($actor->profile?->role?->name, ['IT Admin', 'Super Admin'])) {
+            if ($actor->profile?->role?->name === 'Admin' && $actor->profile?->department?->name === 'Finance') {
+                // Get roles currently associated with the permission
+                $currentRoleIds = $permission->roles()->pluck('roles.id')->toArray();
+
+                // Allowed roles for Finance Admin
+                $allowedRoles = Role::whereIn('name', ['Finance Manager', 'Finance Employee'])->pluck('id')->toArray();
+
+                $disallowedRequested = array_diff($roleIds, $allowedRoles);
+                $disallowedCurrent = array_diff($currentRoleIds, $allowedRoles);
+
+                sort($disallowedRequested);
+                sort($disallowedCurrent);
+                if ($disallowedRequested !== $disallowedCurrent) {
+                    throw new HttpResponseException(
+                        response()->json(['message' => 'You are only authorized to map permissions to Finance Manager or Finance Employee roles.'], 403)
+                    );
+                }
+            } else {
+                throw new HttpResponseException(
+                    response()->json(['message' => 'Unauthorized to modify roles for permissions.'], 403)
+                );
+            }
         }
 
         $this->permissionRepo->syncRoles($permissionId, $roleIds);
@@ -379,5 +493,26 @@ class RolePermissionService
         } catch (\Exception $e) {
             Log::warning('Failed to invalidate permission cache', ['user_id' => $userId, 'error' => $e->getMessage()]);
         }
+    }
+
+    protected function isRoleAllowedForActor(Role|int $role, ?User $actor): bool
+    {
+        if (!$actor) {
+            return false;
+        }
+
+        $actorRole = $actor->profile?->role?->name;
+        $actorDept = $actor->profile?->department?->name;
+
+        if (in_array($actorRole, ['IT Admin', 'Super Admin'])) {
+            return true;
+        }
+
+        if ($actorRole === 'Admin' && $actorDept === 'Finance') {
+            $roleName = $role instanceof Role ? $role->name : $this->roleRepo->findById($role)?->name;
+            return in_array($roleName, ['Finance Manager', 'Finance Employee']);
+        }
+
+        return false;
     }
 }

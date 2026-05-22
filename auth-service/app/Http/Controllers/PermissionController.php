@@ -82,10 +82,10 @@ class PermissionController extends Controller
         return response()->json(['message' => 'Permission deleted successfully.']);
     }
 
-    public function getRoles($id)
+    public function getRoles(Request $request, $id)
     {
         Gate::authorize('manage-roles');
-        return response()->json($this->rolePermissionService->getPermissionRoles((int) $id));
+        return response()->json($this->rolePermissionService->getPermissionRoles((int) $id, $request->user()));
     }
 
     public function syncRoles(Request $request, $id)
