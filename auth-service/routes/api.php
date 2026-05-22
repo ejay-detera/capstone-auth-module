@@ -10,6 +10,7 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/verify-email', [AuthController::class, 'verifyEmail']);
 Route::post('/internal/verify-token', [AuthController::class, 'verifyToken']);
+Route::get('/internal/audit-logs', [\App\Http\Controllers\InternalAuditLogController::class, 'index']);
 
 Route::middleware(['auth:sanctum', 'active.session'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -24,6 +25,7 @@ Route::middleware(['auth:sanctum', 'active.session', 'can:manage-users'])->prefi
     Route::get('/users', [App\Http\Controllers\AdminUserController::class, 'index']);
     Route::post('/users', [App\Http\Controllers\AdminUserController::class, 'store']);
     Route::get('/users/{id}', [App\Http\Controllers\AdminUserController::class, 'show']);
+    Route::patch('/users/{id}/status', [App\Http\Controllers\AdminUserController::class, 'toggleStatus']);
     Route::get('/department-options', [App\Http\Controllers\AdminUserController::class, 'getDepartments']);
     Route::get('/role-options', [App\Http\Controllers\AdminUserController::class, 'getRoles']);
 });

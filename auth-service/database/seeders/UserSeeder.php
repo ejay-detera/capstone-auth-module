@@ -40,7 +40,7 @@ class UserSeeder extends Seeder
                 'email' => 'finance@example.com',
                 'first_name' => 'Finance',
                 'last_name' => 'Officer',
-                'role_name' => 'Employee',
+                'role_name' => 'Finance Employee',
                 'department_name' => 'Finance'
             ],
             [
@@ -54,7 +54,7 @@ class UserSeeder extends Seeder
                 'email' => 'finance-manager@example.com',
                 'first_name' => 'Finance',
                 'last_name' => 'Manager',
-                'role_name' => 'Manager',
+                'role_name' => 'Finance Manager',
                 'department_name' => 'Finance'
             ],
         ];

@@ -22,6 +22,15 @@ if [ "${SKIP_MIGRATIONS}" != "true" ]; then
   echo "Running migrations..."
   php artisan migrate --force
 
+  # Seed only if the users table is empty (idempotent — won't overwrite real data)
+  USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -1)
+  if [ "${USER_COUNT}" = "0" ] || [ -z "${USER_COUNT}" ]; then
+    echo "No users found — seeding database..."
+    php artisan db:seed --force
+  else
+    echo "Database already has ${USER_COUNT} user(s) — skipping seed."
+  fi
+
   # Clear cache after migrations
   echo "Clearing cache..."
   php artisan cache:clear

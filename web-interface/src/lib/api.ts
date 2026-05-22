@@ -25,8 +25,11 @@ api.interceptors.request.use((config) => {
   }
 
   // Payload Encryption for POST, PUT, PATCH
+  // Skip encryption for auth endpoints — login and refresh must send plain JSON
   const methodsWithBody = ['post', 'put', 'patch']
-  if (config.method && methodsWithBody.includes(config.method.toLowerCase()) && config.data) {
+  const skipEncryptionUrls = ['/api/login', '/api/refresh']
+  const shouldSkipEncryption = skipEncryptionUrls.some(url => config.url?.includes(url))
+  if (config.method && methodsWithBody.includes(config.method.toLowerCase()) && config.data && !shouldSkipEncryption) {
     try {
       config.data = encryptPayload(config.data)
       config.headers['X-Encrypted'] = 'true'
@@ -62,7 +65,8 @@ api.interceptors.response.use(
       error.response?.status === 401 &&
       !originalRequest._retried &&
       !originalRequest.url?.includes('/api/refresh') &&
-      !originalRequest.url?.includes('/api/login')
+      !originalRequest.url?.includes('/api/login') &&
+      !originalRequest.url?.includes('/api/logout')
     ) {
       originalRequest._retried = true
 

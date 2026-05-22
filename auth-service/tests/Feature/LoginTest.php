@@ -31,7 +31,7 @@ class LoginTest extends TestCase
                  ->assertCookie('refresh_token');
 
         $this->assertDatabaseHas('audit_logs', [
-            'action' => 'LOGIN_SUCCESS',
+            'action' => 'Login Success',
             'description' => 'Successful login for email: admin@example.com'
         ]);
 
@@ -51,7 +51,7 @@ class LoginTest extends TestCase
                  ->assertJsonValidationErrors(['email']);
 
         $this->assertDatabaseHas('audit_logs', [
-            'action' => 'LOGIN_FAILED',
+            'action' => 'Login Failed',
             'description' => 'Failed login attempt for email: admin@example.com'
         ]);
     }
@@ -85,7 +85,7 @@ class LoginTest extends TestCase
 
         $this->assertDatabaseHas('audit_logs', [
             'actor_id' => $user->id,
-            'action' => 'LOGIN_FAILED'
+            'action' => 'Login Failed'
         ]);
     }
 

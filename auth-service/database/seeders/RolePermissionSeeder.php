@@ -23,6 +23,8 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'Sales',               'description' => 'Sales staff access'],
             ['name' => 'Finance',             'description' => 'Finance staff access'],
             ['name' => 'Employee',            'description' => 'Regular staff access'],
+            ['name' => 'Finance Manager',     'description' => 'Finance department manager'],
+            ['name' => 'Finance Employee',    'description' => 'Finance department employee'],
         ];
 
         // insertOrIgnore: skips duplicates instead of crashing
@@ -37,17 +39,35 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'View Audit Logs',       'slug' => 'view-audit-logs',      'system' => 'auth'],
             ['name' => 'Manage Departments',    'slug' => 'manage-departments',   'system' => 'auth'],
 
-            // CRMS Specific Permissions
-            ['name' => 'Manage CRMS Roles', 'slug' => 'crms.roles.manage', 'system' => 'crms'],
-            ['name' => 'Manage Templates',  'slug' => 'crms.templates.manage', 'system' => 'crms'],
-            ['name' => 'Use Templates',     'slug' => 'crms.templates.use', 'system' => 'crms'],
-            ['name' => 'OCR Upload',        'slug' => 'crms.ocr.upload', 'system' => 'crms'],
-            ['name' => 'OCR Process',       'slug' => 'crms.ocr.process', 'system' => 'crms'],
-            ['name' => 'OCR Review',        'slug' => 'crms.ocr.review', 'system' => 'crms'],
-            ['name' => 'Generate Draft',    'slug' => 'crms.contracts.generate', 'system' => 'crms'],
-            ['name' => 'Run Risk Assessment', 'slug' => 'crms.risk.assess', 'system' => 'crms'],
-            ['name' => 'View Risk Highlights', 'slug' => 'crms.risk.view', 'system' => 'crms'],
-            ['name' => 'Approve/Override Risk', 'slug' => 'crms.risk.approve', 'system' => 'crms'],
+            // CRMS Feature Permissions (legacy / internal)
+            ['name' => 'Manage CRMS Roles',    'slug' => 'crms.roles.manage',        'system' => 'crms'],
+            ['name' => 'Manage Templates',     'slug' => 'crms.templates.manage',    'system' => 'crms'],
+            ['name' => 'Use Templates',        'slug' => 'crms.templates.use',       'system' => 'crms'],
+            ['name' => 'OCR Upload',           'slug' => 'crms.ocr.upload',          'system' => 'crms'],
+            ['name' => 'OCR Process',          'slug' => 'crms.ocr.process',         'system' => 'crms'],
+            ['name' => 'OCR Review',           'slug' => 'crms.ocr.review',          'system' => 'crms'],
+            ['name' => 'Generate Draft',       'slug' => 'crms.contracts.generate',  'system' => 'crms'],
+            ['name' => 'Run Risk Assessment',  'slug' => 'crms.risk.assess',         'system' => 'crms'],
+            ['name' => 'View Risk Highlights', 'slug' => 'crms.risk.view',           'system' => 'crms'],
+            ['name' => 'Approve/Override Risk','slug' => 'crms.risk.approve',        'system' => 'crms'],
+
+            // CRMS CRUD Permissions — Contracts (maps to "Contracts" UI category)
+            ['name' => 'View Contracts',   'slug' => 'crms.contracts.view',   'system' => 'crms'],
+            ['name' => 'Create Contracts', 'slug' => 'crms.contracts.create', 'system' => 'crms'],
+            ['name' => 'Edit Contracts',   'slug' => 'crms.contracts.edit',   'system' => 'crms'],
+            ['name' => 'Delete Contracts', 'slug' => 'crms.contracts.delete', 'system' => 'crms'],
+
+            // CRMS CRUD Permissions — User Management (maps to "User Management" UI category)
+            ['name' => 'View Users',   'slug' => 'crms.users.view',   'system' => 'crms'],
+            ['name' => 'Create Users', 'slug' => 'crms.users.create', 'system' => 'crms'],
+            ['name' => 'Edit Users',   'slug' => 'crms.users.edit',   'system' => 'crms'],
+            ['name' => 'Delete Users', 'slug' => 'crms.users.delete', 'system' => 'crms'],
+
+            // CRMS CRUD Permissions — Partners (maps to "Business Partners & Suppliers" UI category)
+            ['name' => 'View Partners',   'slug' => 'crms.partners.view',   'system' => 'crms'],
+            ['name' => 'Create Partners', 'slug' => 'crms.partners.create', 'system' => 'crms'],
+            ['name' => 'Edit Partners',   'slug' => 'crms.partners.edit',   'system' => 'crms'],
+            ['name' => 'Delete Partners', 'slug' => 'crms.partners.delete', 'system' => 'crms'],
         ];
 
         foreach ($permissions as $permission) {
@@ -59,25 +79,37 @@ class RolePermissionSeeder extends Seeder
 
         // --- Role Assignment Logic ---
 
-        // 1. IT Admin / Super Admin (Auth Management)
+        // 1. IT Admin / Super Admin — full auth management
         $authAdminRoles = \App\Models\Role::whereIn('name', ['Super Admin', 'IT Admin'])->get();
         $authPermissions = \App\Models\Permission::where('system', 'auth')->get();
         foreach ($authAdminRoles as $role) {
             $role->permissions()->syncWithoutDetaching($authPermissions->pluck('id'));
         }
 
-        // 2. CRMS Admin
+        // 2. CRMS Admin — full access to everything
         $crmsAdmin = \App\Models\Role::where('name', 'Admin')->first();
         if ($crmsAdmin) {
             $adminPerms = \App\Models\Permission::whereIn('slug', [
-                'crms.roles.manage', 
+                'crms.roles.manage',
                 'crms.templates.manage',
-                'manage-users' // Allow Admin to manage users within their department
+                'crms.templates.use',
+                'crms.ocr.upload',
+                'crms.ocr.process',
+                'crms.ocr.review',
+                'crms.contracts.generate',
+                'crms.risk.assess',
+                'crms.risk.view',
+                'crms.risk.approve',
+                // CRUD
+                'crms.contracts.view', 'crms.contracts.create', 'crms.contracts.edit', 'crms.contracts.delete',
+                'crms.users.view',     'crms.users.create',     'crms.users.edit',     'crms.users.delete',
+                'crms.partners.view',  'crms.partners.create',  'crms.partners.edit',  'crms.partners.delete',
+                'manage-users',
             ])->get();
             $crmsAdmin->permissions()->syncWithoutDetaching($adminPerms->pluck('id'));
         }
 
-        // 3. CRMS Manager
+        // 3. CRMS Manager — broad access, cannot delete users or manage roles
         $crmsManager = \App\Models\Role::where('name', 'Manager')->first();
         if ($crmsManager) {
             $managerPerms = \App\Models\Permission::whereIn('slug', [
@@ -88,12 +120,36 @@ class RolePermissionSeeder extends Seeder
                 'crms.contracts.generate',
                 'crms.risk.assess',
                 'crms.risk.view',
-                'crms.risk.approve'
+                'crms.risk.approve',
+                // CRUD
+                'crms.contracts.view', 'crms.contracts.create', 'crms.contracts.edit',
+                'crms.users.view',
+                'crms.partners.view',  'crms.partners.create',  'crms.partners.edit',
             ])->get();
             $crmsManager->permissions()->syncWithoutDetaching($managerPerms->pluck('id'));
         }
 
-        // 4. CRMS Sales
+        // 3b. Finance Manager — same default access as CRMS Manager, but scoped to Finance department
+        $financeManager = \App\Models\Role::where('name', 'Finance Manager')->first();
+        if ($financeManager) {
+            $managerPerms = \App\Models\Permission::whereIn('slug', [
+                'crms.templates.use',
+                'crms.ocr.upload',
+                'crms.ocr.process',
+                'crms.ocr.review',
+                'crms.contracts.generate',
+                'crms.risk.assess',
+                'crms.risk.view',
+                'crms.risk.approve',
+                // CRUD
+                'crms.contracts.view', 'crms.contracts.create', 'crms.contracts.edit',
+                'crms.users.view',
+                'crms.partners.view',  'crms.partners.create',  'crms.partners.edit',
+            ])->get();
+            $financeManager->permissions()->syncWithoutDetaching($managerPerms->pluck('id'));
+        }
+
+        // 4. CRMS Sales — limited, view-only on most; own-record access enforced by app logic
         $crmsSales = \App\Models\Role::where('name', 'Sales')->first();
         if ($crmsSales) {
             $salesPerms = \App\Models\Permission::whereIn('slug', [
@@ -104,7 +160,11 @@ class RolePermissionSeeder extends Seeder
                 'crms.contracts.generate',
                 'crms.risk.assess',
                 'crms.risk.view',
-                'crms.risk.approve'
+                'crms.risk.approve',
+                // CRUD
+                'crms.contracts.view',
+                'crms.users.view',
+                'crms.partners.view',
             ])->get();
             $crmsSales->permissions()->syncWithoutDetaching($salesPerms->pluck('id'));
         }

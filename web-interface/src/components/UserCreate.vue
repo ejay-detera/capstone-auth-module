@@ -1,25 +1,19 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import api from '@/lib/api'
+import { reactive, onMounted } from 'vue'
+import { useUsers } from '@/composables/useUsers'
 import { Loader2, UserPlus, CheckCircle2, AlertCircle } from 'lucide-vue-next'
 
-interface Role {
-  id: number
-  name: string
-}
-
-interface Department {
-  id: number
-  name: string
-}
-
-const roles = ref<Role[]>([])
-const departments = ref<Department[]>([])
-const isLoadingData = ref(true)
-const isSubmitting = ref(false)
-const isSuccess = ref(false)
-const errors = ref<Record<string, string[]>>({})
-const generalError = ref('')
+const {
+  roles,
+  departments,
+  isLoadingData,
+  isSubmitting,
+  isSuccess,
+  errors,
+  generalError,
+  fetchCreateFormData,
+  createUser,
+} = useUsers()
 
 const form = reactive({
   first_name: '',
@@ -29,46 +23,13 @@ const form = reactive({
   department_id: ''
 })
 
-const fetchData = async () => {
-  try {
-    const [rolesRes, deptsRes] = await Promise.all([
-      api.get('/api/admin/role-options'),
-      api.get('/api/admin/department-options')
-    ])
-    roles.value = rolesRes.data
-    departments.value = deptsRes.data
-  } catch (err) {
-    generalError.value = 'Failed to load roles or departments.'
-  } finally {
-    isLoadingData.value = false
-  }
-}
-
-onMounted(fetchData)
+onMounted(fetchCreateFormData)
 
 const handleSubmit = async () => {
-  isSubmitting.value = true
-  errors.value = {}
-  generalError.value = ''
-  
-  try {
-    await api.post('/api/admin/users', form)
-    isSuccess.value = true
+  const success = await createUser(form)
+  if (success) {
     // Reset form
     Object.keys(form).forEach(key => (form[key as keyof typeof form] = ''))
-    setTimeout(() => {
-      isSuccess.value = false
-    }, 5000)
-  } catch (error: any) {
-    if (error.response?.status === 422) {
-      errors.value = error.response.data.errors
-    } else if (error.response?.status === 409) {
-      errors.value = { email: ['Email already exists'] }
-    } else {
-      generalError.value = error.response?.data?.message || 'Failed to create user.'
-    }
-  } finally {
-    isSubmitting.value = false
   }
 }
 </script>

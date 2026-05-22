@@ -46,8 +46,8 @@ class CrmsAuthorizationTest extends TestCase
         $this->assertTrue($adminRole->permissions->contains('slug', 'crms.roles.manage'));
         $this->assertTrue($adminRole->permissions->contains('slug', 'crms.templates.manage'));
         
-        // Admin should NOT have Sales-specific permissions in this specific setup unless explicitly given
-        $this->assertFalse($adminRole->permissions->contains('slug', 'crms.ocr.upload'));
+        // Admin should have OCR Upload permission in this setup
+        $this->assertTrue($adminRole->permissions->contains('slug', 'crms.ocr.upload'));
     }
 
     /**
@@ -95,7 +95,10 @@ class CrmsAuthorizationTest extends TestCase
                      'crms.contracts.generate',
                      'crms.risk.assess',
                      'crms.risk.view',
-                     'crms.risk.approve'
+                     'crms.risk.approve',
+                     'crms.contracts.view',
+                     'crms.users.view',
+                     'crms.partners.view'
                  ]]);
                  
         // Ensure auth-service internal permissions are NOT included in CRMS filtered request

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import api from '@/lib/api'
+import { useAuth } from '@/composables/useAuth'
 import { CheckCircle2, Mail, X } from 'lucide-vue-next'
 
 // ── Emits ─────────────────────────────────────────────────────────────────────
@@ -9,23 +9,15 @@ const closeModal = () => emit('close')
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const email = ref('')
-const isLoading = ref(false)
-const message = ref('')
-const error = ref('')
+const {
+  forgotPassword,
+  forgotLoading: isLoading,
+  forgotMessage: message,
+  forgotError: error,
+} = useAuth()
 
 const handleSubmit = async () => {
-  isLoading.value = true
-  message.value = ''
-  error.value = ''
-
-  try {
-    const response = await api.post('/api/forgot-password', { email: email.value })
-    message.value = response.data.message || 'If an account exists with that email, we have sent a reset link.'
-  } catch (err: any) {
-    error.value = err.response?.data?.message || 'Something went wrong. Please try again.'
-  } finally {
-    isLoading.value = false
-  }
+  await forgotPassword(email.value)
 }
 </script>
 

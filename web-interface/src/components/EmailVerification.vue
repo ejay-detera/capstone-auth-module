@@ -76,64 +76,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import axios from 'axios'
+import { useAuth } from '@/composables/useAuth'
 import { Loader2, CheckCircle2, XCircle, Info } from 'lucide-vue-next'
 
 const route = useRoute()
-const status = ref<'loading' | 'success' | 'expired' | 'already-verified' | 'error'>('loading')
-const errorMessage = ref('')
-const resending = ref(false)
-const resendMessage = ref('')
-const resendError = ref(false)
-
-const verifyEmail = async () => {
-  const token = route.query.token
-  if (!token) {
-    status.value = 'error'
-    errorMessage.value = 'No verification token provided.'
-    return
-  }
-
-  try {
-    const response = await axios.get(`http://localhost:8000/api/verify-email?token=${token}`)
-    if (response.data.message === 'Email already verified.') {
-      status.value = 'already-verified'
-    } else {
-      status.value = 'success'
-    }
-  } catch (error: any) {
-    if (error.response?.status === 400) {
-      status.value = 'expired'
-    } else {
-      status.value = 'error'
-      errorMessage.value = error.response?.data?.message || 'Verification failed.'
-    }
-  }
-}
-
-const resendVerification = async () => {
-  resending.value = true
-  resendMessage.value = ''
-  resendError.value = false
-
-  try {
-    const token = localStorage.getItem('access_token')
-    await axios.post('http://localhost:8000/api/send-verification', {}, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    resendMessage.value = 'Verification email sent successfully.'
-  } catch (error: any) {
-    resendError.value = true
-    resendMessage.value = error.response?.data?.message || 'Failed to resend verification email.'
-  } finally {
-    resending.value = false
-  }
-}
+const {
+  verifyEmail,
+  verifyStatus: status,
+  verifyErrorMessage: errorMessage,
+  resendVerification,
+  resending,
+  resendMessage,
+  resendError,
+} = useAuth()
 
 onMounted(() => {
-  verifyEmail()
+  const token = route.query.token as string | null
+  verifyEmail(token)
 })
 </script>
 
