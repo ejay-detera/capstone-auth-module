@@ -21,14 +21,14 @@ class PermissionManagementTest extends TestCase
     private function getAdminHeaders()
     {
         $admin = User::factory()->create(['is_active' => true]);
-        $role = Role::firstOrCreate(['name' => 'IT Admin ' . Str::random(5)]);
+        $role = Role::firstOrCreate(['name' => 'IT Admin']);
         $permManageRoles = Permission::firstOrCreate(
             ['slug' => 'manage-roles'],
-            ['name' => 'Manage Roles ' . Str::random(5)]
+            ['name' => 'Manage Roles']
         );
         $permManageUsers = Permission::firstOrCreate(
             ['slug' => 'manage-users'],
-            ['name' => 'Manage Users ' . Str::random(5)]
+            ['name' => 'Manage Users']
         );
         
         $role->permissions()->syncWithoutDetaching([$permManageRoles->id, $permManageUsers->id]);

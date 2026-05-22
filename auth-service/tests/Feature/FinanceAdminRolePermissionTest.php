@@ -199,7 +199,7 @@ class FinanceAdminRolePermissionTest extends TestCase
         $opsDept = Department::where('name', 'Operations')->first();
 
         // User in Finance department
-        $financeUser = User::create(['email' => 'finance-user-assign@example.com', 'is_active' => true]);
+        $financeUser = User::create(['email' => 'finance-user-assign@sbsi.com', 'is_active' => true]);
         UserProfile::create([
             'user_id' => $financeUser->id,
             'role_id' => Role::where('name', 'Finance Employee')->first()->id,
@@ -209,7 +209,7 @@ class FinanceAdminRolePermissionTest extends TestCase
         ]);
 
         // User in Operations department
-        $opsUser = User::create(['email' => 'ops-user-assign@example.com', 'is_active' => true]);
+        $opsUser = User::create(['email' => 'ops-user-assign@sbsi.com', 'is_active' => true]);
         UserProfile::create([
             'user_id' => $opsUser->id,
             'role_id' => Role::where('name', 'Employee')->first()->id,
@@ -221,8 +221,7 @@ class FinanceAdminRolePermissionTest extends TestCase
         // 1. Assign allowed role to Finance user -> allowed
         $response1 = $this->actingAs($user)
                           ->withHeader('X-Session-ID', $sessionId)
-                          ->postJson("/api/admin/roles/assign", [
-                              'user_id' => $financeUser->id,
+                          ->patchJson("/api/admin/users/{$financeUser->id}/role", [
                               'role_id' => $financeManagerRole->id
                           ]);
         $response1->assertStatus(200);
@@ -231,8 +230,7 @@ class FinanceAdminRolePermissionTest extends TestCase
         // 2. Assign disallowed role to Finance user -> forbidden
         $response2 = $this->actingAs($user)
                           ->withHeader('X-Session-ID', $sessionId)
-                          ->postJson("/api/admin/roles/assign", [
-                              'user_id' => $financeUser->id,
+                          ->patchJson("/api/admin/users/{$financeUser->id}/role", [
                               'role_id' => $itAdminRole->id
                           ]);
         $response2->assertStatus(403);
@@ -240,8 +238,7 @@ class FinanceAdminRolePermissionTest extends TestCase
         // 3. Assign allowed role to Operations user -> forbidden
         $response3 = $this->actingAs($user)
                           ->withHeader('X-Session-ID', $sessionId)
-                          ->postJson("/api/admin/roles/assign", [
-                              'user_id' => $opsUser->id,
+                          ->patchJson("/api/admin/users/{$opsUser->id}/role", [
                               'role_id' => $financeManagerRole->id
                           ]);
         $response3->assertStatus(403);
@@ -267,19 +264,24 @@ class FinanceAdminRolePermissionTest extends TestCase
         $financeManagerRole = Role::where('name', 'Finance Manager')->first();
         $financeEmployeeRole = Role::where('name', 'Finance Employee')->first();
 
+        // Must preserve existing disallowed roles
+        $currentRoleIds = $permission->roles()->pluck('roles.id')->toArray();
+        $allowedRoles = Role::whereIn('name', ['Finance Manager', 'Finance Employee'])->pluck('id')->toArray();
+        $disallowedRoles = array_diff($currentRoleIds, $allowedRoles);
+
         $responseSync = $this->actingAs($user)
                              ->withHeader('X-Session-ID', $sessionId)
                              ->postJson("/api/admin/permissions/{$permission->id}/roles", [
-                                 'roles' => [$financeManagerRole->id, $financeEmployeeRole->id]
+                                 'role_ids' => array_merge($disallowedRoles, [$financeManagerRole->id, $financeEmployeeRole->id])
                              ]);
         $responseSync->assertStatus(200);
 
-        // 3. Sync including disallowed roles -> forbidden
+        // 3. Sync including disallowed roles (trying to add a new disallowed one) -> forbidden
         $itAdminRole = Role::where('name', 'IT Admin')->first();
         $responseSyncDisallowed = $this->actingAs($user)
                                        ->withHeader('X-Session-ID', $sessionId)
                                        ->postJson("/api/admin/permissions/{$permission->id}/roles", [
-                                           'roles' => [$financeManagerRole->id, $itAdminRole->id]
+                                           'role_ids' => array_merge($disallowedRoles, [$financeManagerRole->id, $itAdminRole->id])
                                        ]);
         $responseSyncDisallowed->assertStatus(403);
     }
@@ -297,7 +299,7 @@ class FinanceAdminRolePermissionTest extends TestCase
         $response1 = $this->actingAs($user)
                           ->withHeader('X-Session-ID', $sessionId)
                           ->postJson('/api/admin/users', [
-                              'email' => 'new-finance-mgr@example.com',
+                              'email' => 'new-finance-mgr@sbsi.com',
                               'first_name' => 'New',
                               'last_name' => 'Manager',
                               'role_id' => $financeManagerRole->id,
@@ -309,7 +311,7 @@ class FinanceAdminRolePermissionTest extends TestCase
         $response2 = $this->actingAs($user)
                           ->withHeader('X-Session-ID', $sessionId)
                           ->postJson('/api/admin/users', [
-                              'email' => 'new-global-mgr@example.com',
+                              'email' => 'new-global-mgr@sbsi.com',
                               'first_name' => 'New',
                               'last_name' => 'Manager',
                               'role_id' => $globalManagerRole->id,
@@ -321,7 +323,7 @@ class FinanceAdminRolePermissionTest extends TestCase
         $response3 = $this->actingAs($user)
                           ->withHeader('X-Session-ID', $sessionId)
                           ->postJson('/api/admin/users', [
-                              'email' => 'new-ops-mgr@example.com',
+                              'email' => 'new-ops-mgr@sbsi.com',
                               'first_name' => 'New',
                               'last_name' => 'Manager',
                               'role_id' => $financeManagerRole->id,
