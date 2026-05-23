@@ -185,17 +185,17 @@ const handleLogout = () => {
 }
 
 const openModule = (subsystemTitle: string) => {
-  if (subsystemTitle === 'Contract Management') {
-    if (userRole.value === 'IT Admin') {
-      router.push('/admin')
-    } else if (userRole.value === 'Admin') {
-      window.location.href = '/crms/admin/dashboard'
-    } else if (userRole.value === 'Manager') {
-      window.location.href = '/crms/manager/dashboard'
-    } else if (userRole.value === 'Sales' || userRole.value === 'Employee') {
-      window.location.href = '/crms/sales/dashboard'
-    }
-  } else if (subsystemTitle === 'User & Access Management') {
+    if (subsystemTitle === 'Contract Management') {
+      if (userRole.value === 'IT Admin') {
+        router.push('/admin')
+      } else if (userRole.value === 'Admin') {
+        window.location.href = '/crms/admin/dashboard'
+      } else if (userRole.value === 'Manager' || userRole.value === 'Finance Manager') {
+        window.location.href = '/crms/manager/dashboard'
+      } else if (userRole.value === 'Sales' || userRole.value === 'Employee' || userRole.value === 'Finance Employee' || userRole.value === 'Finance') {
+        window.location.href = '/crms/sales/dashboard'
+      }
+    } else if (subsystemTitle === 'User & Access Management') {
     router.push('/admin')
   } else {
     alert(`${subsystemTitle} is not active in this development environment.`)

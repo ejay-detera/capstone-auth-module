@@ -31,7 +31,7 @@ const handleLogin = async () => {
   if (result.success && result.user) {
     const roleName = result.user.profile?.role?.name || result.user.role || ''
 
-    if (['IT Admin', 'Admin', 'Manager', 'Sales', 'Employee'].includes(roleName)) {
+    if (['IT Admin', 'Admin', 'Manager', 'Sales', 'Employee', 'Finance Manager', 'Finance Employee', 'Finance'].includes(roleName)) {
       router.push('/home')
     } else {
       generalError.value = 'Unrecognized role. Please contact IT Support.'

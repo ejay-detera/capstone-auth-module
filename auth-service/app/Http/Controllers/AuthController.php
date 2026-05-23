@@ -48,10 +48,18 @@ class AuthController extends Controller
             $userAgent = $request->userAgent();
             $email = $request->email;
             defer(function () use ($user, $ip, $userAgent, $email) {
+                $firstName = $user->profile->first_name ?? '';
+                $lastName = $user->profile->last_name ?? '';
+                $fullName = trim("{$firstName} {$lastName}");
                 $this->pushToCrmsAuditLog('Login Success', 'Session', $user->id, [
                     'email' => $email,
                     'ip_address' => $ip,
                     'user_agent' => $userAgent,
+                ], [
+                    'user_name' => !empty($fullName) ? $fullName : $user->email,
+                    'user_email' => $user->email,
+                    'user_role' => $user->profile->role->name ?? 'Finance',
+                    'user_department' => $user->profile->department->name ?? 'Finance',
                 ]);
             });
         }
@@ -126,7 +134,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         if ($user) {
-            $user->load(['profile.department']);
+            $user->load(['profile.department', 'profile.role']);
             $department = $user->profile?->department?->name;
 
             DB::table('audit_logs')->insert([
@@ -141,10 +149,18 @@ class AuthController extends Controller
             ]);
 
             if ($department === 'Finance') {
+                $firstName = $user->profile->first_name ?? '';
+                $lastName = $user->profile->last_name ?? '';
+                $fullName = trim("{$firstName} {$lastName}");
                 $this->pushToCrmsAuditLog('Logout', 'Session', $user->id, [
                     'email' => $user->email,
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
+                ], [
+                    'user_name' => !empty($fullName) ? $fullName : $user->email,
+                    'user_email' => $user->email,
+                    'user_role' => $user->profile->role->name ?? 'Finance',
+                    'user_department' => $user->profile->department->name ?? 'Finance',
                 ]);
             }
         }
@@ -251,7 +267,7 @@ class AuthController extends Controller
     /**
      * Push audit event to CRMS vendor-management service.
      */
-    private function pushToCrmsAuditLog(string $action, string $entityType, ?int $userId, array $context): void
+    private function pushToCrmsAuditLog(string $action, string $entityType, ?int $userId, array $context, array $userDetails = []): void
     {
         $url = env('VENDOR_MANAGEMENT_URL', 'http://vendor-management:8000/api') . '/internal/audit-event';
         $secret = env('INTERNAL_SERVICE_SECRET');
@@ -264,13 +280,13 @@ class AuthController extends Controller
         try {
             \Illuminate\Support\Facades\Http::withHeaders([
                 'X-Internal-Secret' => $secret,
-            ])->timeout(2)->connectTimeout(1)->post($url, [
+            ])->timeout(2)->connectTimeout(1)->post($url, array_merge([
                 'action' => $action,
                 'entity_type' => $entityType,
                 'entity_id' => 0,
                 'user_id' => $userId,
                 'new_data' => $context,
-            ]);
+            ], $userDetails));
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to push audit event to CRMS: ' . $e->getMessage());
         }
