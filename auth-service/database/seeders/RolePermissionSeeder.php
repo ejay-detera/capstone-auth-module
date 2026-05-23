@@ -56,6 +56,7 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'Create Contracts', 'slug' => 'crms.contracts.create', 'system' => 'crms'],
             ['name' => 'Edit Contracts',   'slug' => 'crms.contracts.edit',   'system' => 'crms'],
             ['name' => 'Delete Contracts', 'slug' => 'crms.contracts.delete', 'system' => 'crms'],
+            ['name' => 'Approve Contracts', 'slug' => 'crms.contracts.approve', 'system' => 'crms'],
 
             // CRMS CRUD Permissions — User Management (maps to "User Management" UI category)
             ['name' => 'View Users',   'slug' => 'crms.users.view',   'system' => 'crms'],
@@ -101,7 +102,7 @@ class RolePermissionSeeder extends Seeder
                 'crms.risk.view',
                 'crms.risk.approve',
                 // CRUD
-                'crms.contracts.view', 'crms.contracts.create', 'crms.contracts.edit', 'crms.contracts.delete',
+                'crms.contracts.view', 'crms.contracts.create', 'crms.contracts.edit', 'crms.contracts.delete', 'crms.contracts.approve',
                 'crms.users.view',     'crms.users.create',     'crms.users.edit',     'crms.users.delete',
                 'crms.partners.view',  'crms.partners.create',  'crms.partners.edit',  'crms.partners.delete',
                 'manage-users',
@@ -122,7 +123,7 @@ class RolePermissionSeeder extends Seeder
                 'crms.risk.view',
                 'crms.risk.approve',
                 // CRUD
-                'crms.contracts.view', 'crms.contracts.create', 'crms.contracts.edit',
+                'crms.contracts.view', 'crms.contracts.create', 'crms.contracts.edit', 'crms.contracts.approve',
                 'crms.users.view',
                 'crms.partners.view',  'crms.partners.create',  'crms.partners.edit',
             ])->get();
@@ -142,7 +143,7 @@ class RolePermissionSeeder extends Seeder
                 'crms.risk.view',
                 'crms.risk.approve',
                 // CRUD
-                'crms.contracts.view', 'crms.contracts.create', 'crms.contracts.edit',
+                'crms.contracts.view', 'crms.contracts.create', 'crms.contracts.edit', 'crms.contracts.approve',
                 'crms.users.view',
                 'crms.partners.view',  'crms.partners.create',  'crms.partners.edit',
             ])->get();
@@ -163,6 +164,7 @@ class RolePermissionSeeder extends Seeder
                 'crms.risk.approve',
                 // CRUD
                 'crms.contracts.view',
+                'crms.contracts.approve',
                 'crms.users.view',
                 'crms.partners.view',
             ])->get();
