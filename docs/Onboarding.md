@@ -46,7 +46,7 @@ The error handling strategy focuses on predictability and centralized management
 ### 3. Frontend Development
 The frontend is developed using **Vue 3 (Composition API)** and **TypeScript**.
 - **Type Definitions**: API responses and internal data structures must be strictly typed.
-- **Component Design**: Components should be modular and maintain a single responsibility.
+- **Component Design**: Components should be modular, maintain a single responsibility, and follow a folder-based structure (encapsulating a component and its assets in its own directory).
 - **State Management**: Reactive state is managed via Vue's reactivity system or Pinia where appropriate.
 
 ---

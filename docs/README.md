@@ -9,6 +9,9 @@ Welcome to the **Capstone Auth Module** documentation repository. This directory
 ### [Quickstart Guide](./Quickstart.md)
 Procedures for rapid local environment initialization using Docker.
 
+### [Shared Gateway Guide](./SHARED_GATEWAY_GUIDE.md)
+Detailed guide for configuring and using the shared Nginx reverse proxy gateway.
+
 ### [Developer Onboarding](./Onboarding.md)
 Technical overview of the system architecture, core design patterns, and engineering practices.
 

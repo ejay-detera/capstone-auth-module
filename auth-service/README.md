@@ -1,58 +1,112 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Capstone Authentication Service (auth-service)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+The **auth-service** is the centralized identity provider and access control gateway for the Capstone application suite. Built on **Laravel 13.x** and running on **PHP 8.3**, this service governs user credentials, session state, permissions, and security policies across all modules.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Key Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Stateless JWT Authentication**: Implements JSON Web Token verification with a robust access/refresh token rotation mechanism.
+- **Role-Based Access Control (RBAC)**: Supports dynamic role assignments and system-scoped privileges (e.g., `IT Admin`, `User`).
+- **Secure Write Payloads (AES-256-CBC)**: Protects incoming write parameters (POST, PUT, PATCH requests) by decrypting payload data sent from the Vue interface.
+- **Account Lifecycles**: Supports user registration, email verification flows, password resets, and account audits.
+- **Robust Testing**: Fully covered by backend feature and unit tests via PHPUnit.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Core Architecture & Components
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. Payload Security Middleware
+The service includes a custom `PayloadSecurityMiddleware` registered globally or on write routes.
+- **File**: `app/Http/Middleware/PayloadSecurityMiddleware.php`
+- **Behavior**: Inspects incoming request headers. If `X-Encrypted: true` is present, it intercept the raw body, decrypts it using the `EncryptionService` and the `INTERNAL_ENCRYPTION_KEY`, and merges the decrypted parameters back into the Request inputs.
+- **Encrypter**: `app/Services/EncryptionService.php` using `aes-256-cbc`.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 2. User & Authentication Logic
+- **Primary Identifier**: Email address (username has been deprecated and removed from database schemas).
+- **Controllers**:
+  - `AuthController`: Manages token rotation, logouts, password recovery, email verification, and system status check.
+  - `AdminUserController`: Enables administration of user accounts, assignments of departments, and roles.
+  - `RoleController`: Exposes endpoints for managing custom permission associations and role attributes.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### 3. Database Schema & Seeding
+- **Roles & Permissions**: Default structures are defined in `database/seeders/RolePermissionSeeder.php`, initializing permissions for system configuration and user management.
+- **Default Admins**: Seeded via `database/seeders/UserSeeder.php`.
 
-## Agentic Development
+---
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Environment Variables
 
-```bash
-composer require laravel/boost --dev
+Configure your local `auth-service/.env` file with the following variables:
 
-php artisan boost:install
+```ini
+APP_NAME="Capstone Auth Service"
+APP_ENV=local
+APP_KEY=base64:... # Laravel general app key
+APP_DEBUG=true
+APP_URL=http://localhost
+
+# Shared frontend/backend encryption key (32-characters)
+INTERNAL_ENCRYPTION_KEY=your_secure_32_char_key_here
+
+# Database Configuration (matches docker-compose)
+DB_CONNECTION=mysql
+DB_HOST=db
+DB_PORT=3306
+DB_DATABASE=capstone_auth
+DB_USERNAME=capstone_user
+DB_PASSWORD=capstone_password
+
+# Redis Configuration (used for caching)
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# Mail Server Configurations (for SMTP password resets/verification)
+MAIL_MAILER=smtp
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your_smtp_username
+MAIL_PASSWORD=your_smtp_password
+MAIL_FROM_ADDRESS="no-reply@capstone.local"
+MAIL_FROM_NAME="Capstone Identity"
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+## Docker Integration & CLI Commands
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+The service runs inside a Docker container named `auth-service` as part of the orchestration bundle.
 
-## Code of Conduct
+### Command Execution inside Container
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+To run database migrations and populate seeds:
+```bash
+docker exec -it auth-service php artisan migrate --seed
+```
 
-## Security Vulnerabilities
+To clear config and cache layers:
+```bash
+docker exec -it auth-service php artisan config:clear
+docker exec -it auth-service php artisan cache:clear
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+To run the complete PHPUnit test suite:
+```bash
+docker exec -it auth-service php artisan test
+```
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## API Documentation
+
+| Endpoint | Method | Encrypted? | Description |
+|---|---|---|---|
+| `/api/login` | `POST` | Yes | Validates credentials and returns JWT tokens. |
+| `/api/logout` | `POST` | No | Revokes current user session tokens. |
+| `/api/refresh` | `POST` | No | Performs refresh token rotation to get a new access token. |
+| `/api/forgot-password` | `POST` | Yes | Requests password reset code sent via email. |
+| `/api/reset-password` | `POST` | Yes | Updates credentials using a valid reset token. |
+| `/api/verify-email` | `POST` | Yes | Verifies user email from the verification token. |
+| `/api/admin/users` | `GET` | No | Lists all registered accounts (Admin only). |
+| `/api/admin/users` | `POST` | Yes | Provisions a new user account (Admin only). |
+```

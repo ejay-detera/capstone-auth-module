@@ -1,0 +1,5 @@
+# Environment — never commit real credentials
+.env
+
+# Docker override files
+docker-compose.override.yml

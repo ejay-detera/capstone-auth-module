@@ -1,31 +1,9 @@
-# Stage 1: Composer dependencies
-FROM composer:2 AS vendor
-WORKDIR /app
-COPY composer.json composer.lock ./
-RUN composer install \
-    --no-interaction \
-    --no-plugins \
-    --no-scripts \
-    --no-dev \
-    --prefer-dist
-
-# Stage 2: Node dependencies and assets
-FROM node:20-alpine AS frontend
-WORKDIR /app
-COPY package.json package-lock.json vite.config.js ./
-RUN npm install
-COPY resources/ ./resources/
-COPY public/ ./public/
-RUN npm run build
-
-# Stage 3: Runtime
+# Runtime stage
 FROM php:8.3-fpm-alpine
 WORKDIR /var/www/html
 
 # Install system dependencies and PHP extensions
 RUN apk add --no-cache \
-    nginx \
-    supervisor \
     libzip-dev \
     zip \
     unzip \
@@ -33,25 +11,39 @@ RUN apk add --no-cache \
     libjpeg-turbo-dev \
     freetype-dev \
     icu-dev \
+    netcat-openbsd \
+    linux-headers pcre-dev $PHPIZE_DEPS \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_mysql zip gd intl bcmath
+    && docker-php-ext-install pdo_mysql zip gd intl bcmath opcache \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && { \
+        echo 'opcache.enable=1'; \
+        echo 'opcache.memory_consumption=128'; \
+        echo 'opcache.interned_strings_buffer=8'; \
+        echo 'opcache.max_accelerated_files=10000'; \
+        echo 'opcache.revalidate_freq=0'; \
+        echo 'opcache.validate_timestamps=1'; \
+    } > /usr/local/etc/php/conf.d/opcache.ini
 
-# Configure Nginx
-COPY .docker/nginx.conf /etc/nginx/http.d/default.conf
-
-# Configure Supervisor
-COPY .docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Copy application code
-COPY --from=vendor /app/vendor/ ./vendor/
-COPY --from=frontend /app/public/build/ ./public/build/
 COPY . .
+
+# Install dependencies
+RUN composer install --no-interaction --optimize-autoloader
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Expose port
-EXPOSE 80
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Start supervisor
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Expose port
+EXPOSE 8000
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]

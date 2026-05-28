@@ -18,6 +18,7 @@ Identity management is a fundamental component of modern software architecture. 
 Detailed guides regarding the configuration, development, and contribution processes are available in the documentation directory:
 
 - **[Quickstart Guide](./docs/Quickstart.md)**: Procedures for local environment initialization.
+- **[Docker Setup Guide](./DOCKER.md)**: Comprehensive guide on container orchestration, setup, and troubleshooting.
 - **[Developer Onboarding](./docs/Onboarding.md)**: Technical overview of the architecture and development practices.
 - **[Coding Guidelines](./docs/CodingGuidelines.md)**: Standards for code quality, scalability, and consistency.
 - **[Contributing Guide](./docs/Contributing.md)**: Protocols for issue reporting and pull request submission.
@@ -28,19 +29,22 @@ Detailed guides regarding the configuration, development, and contribution proce
 
 - User account registration and lifecycle management.
 - Secure authentication and session workflows.
-- Planned: Automated password recovery and account verification.
+- Automated password recovery and email verification.
+- User profile updates and role/permission enforcement.
 
 ### Security
 
-- Token-based authentication for stateless API interactions.
+- Token-based authentication with secure JWT and refresh token rotation.
+- AES-256-CBC payload encryption on write requests (POST, PUT, PATCH) between frontend and backend.
 - Cryptographic protection of sensitive data at rest.
 - Cross-Origin Resource Sharing (CORS) and security header enforcement.
 
 ### Infrastructure
 
 - Comprehensive containerization via Docker and Docker Compose.
+- Shared Nginx reverse proxy gateway handling request routing.
 - Automated service orchestration and dependency management.
-- Integrated caching layer for optimized performance.
+- Integrated caching layer (Redis) for session and token management.
 
 ## Tech Stack
 
@@ -49,11 +53,12 @@ Detailed guides regarding the configuration, development, and contribution proce
 - **Framework**: Laravel 13.x (PHP 8.3)
 - **Database**: MySQL 8.0
 - **Caching/Queue**: Redis (Alpine)
-- **Web Server**: Nginx
+- **Web Server**: Nginx (Development PHP CLI server)
 
 ### Frontend
 
 - **Framework**: Vue 3 (Composition API)
+- **Styling**: Tailwind CSS & Shadcn Vue
 - **Build Tool**: Vite
 - **Language**: TypeScript
 
@@ -77,6 +82,7 @@ The project utilizes a decoupled client-server architecture to ensure strict sep
 
 - Docker Desktop
 - Git
+- Node.js (v20 or higher, for local dev outside containers)
 
 ### Environment Configuration
 
@@ -87,14 +93,25 @@ The project utilizes a decoupled client-server architecture to ensure strict sep
    cd capstone-auth-module
    ```
 
-2. Initialize backend environment variables:
+2. Setup the external Docker network. The services in `docker-compose.yml` communicate over an external network called `shared-capstone-network`. Create it by running:
    ```bash
+   docker network create shared-capstone-network
+   ```
+
+3. Initialize environment variables. Copy the templates and configure the parameters (especially database credentials and `INTERNAL_ENCRYPTION_KEY` which must be a 32-character string):
+   ```bash
+   # Root / Docker Compose env
+   cp .env.example .env
+
+   # Backend env
    cd auth-service
    cp .env.example .env
    cd ..
    ```
 
 ### Deployment via Docker
+
+For a detailed setup guide, command reference, and common troubleshooting steps (especially for socket/connection errors), refer to the **[Docker Setup & Management Guide](./DOCKER.md)**.
 
 1. Build and initialize services:
 
@@ -108,17 +125,17 @@ The project utilizes a decoupled client-server architecture to ensure strict sep
    docker exec -it auth-service php artisan key:generate
    ```
 
-3. Execute database migrations:
+3. Execute database migrations and seed default users, roles, and permissions:
    ```bash
-   docker exec -it auth-service php artisan migrate
+   docker exec -it auth-service php artisan migrate --seed
    ```
 
 ## Running the Project
 
 ### Service Access
 
-- **Frontend**: [http://localhost:8080](http://localhost:8080)
-- **Backend API**: [http://localhost:8000](http://localhost:8000)
+- **Web Interface (via Gateway)**: [http://localhost:5173](http://localhost:5173) (Routes requests to the Vue UI at `/` and backend API at `/api`)
+- **Backend API (Direct)**: [http://localhost:8000](http://localhost:8000)
 
 ### Administration
 
@@ -149,17 +166,18 @@ The project utilizes a decoupled client-server architecture to ensure strict sep
 
 ### Data Protection
 
-- **Encryption**: Sensitive data is protected using AES-256-CBC via Laravel's encryption services.
+- **Payload Encryption**: Write operations (POST, PUT, PATCH) encrypt parameters with AES-256-CBC client-side before transmission. The backend decrypts payloads via `PayloadSecurityMiddleware` and validates the input.
+- **Data Encryption**: Sensitive database values are protected using AES-256-CBC via Laravel's encryption services.
 - **Hashing**: Password security is enforced using Argon2 or Bcrypt.
 
 ### Network Security
 
-- **Reverse Proxy**: Nginx handles request routing and SSL termination (if configured).
-- **Isolation**: Internal services are isolated within a private Docker network.
+- **Reverse Proxy**: Nginx proxy gateway routes public traffic, mapping domain paths to internal services.
+- **Isolation**: Internal services are isolated within the `shared-capstone-network` private network.
 
 ## Testing Strategy
 
-The project employs PHPUnit for backend verification and Vitest for frontend validation.
+The project employs PHPUnit for backend API and feature verification.
 
 ### Backend Execution
 
@@ -176,6 +194,10 @@ If a `MissingAppKeyException` occurs, execute:
 ```bash
 docker exec -it auth-service php artisan key:generate
 ```
+
+### Encryption Key Mismatch
+
+Ensure `INTERNAL_ENCRYPTION_KEY` in the root `.env` (passed to `web-interface`) and `auth-service/.env` matches exactly and is 32 characters long. If decryption errors occur, restart the containers.
 
 ### Database Connectivity
 
