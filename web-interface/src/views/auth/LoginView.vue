@@ -1,17 +1,49 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useToast } from '@/composables/useToast'
 import { Eye, EyeOff, Loader2 } from 'lucide-vue-next'
-import ForgotPasswordModal from '@/components/ForgotPassword.vue'
+import ForgotPasswordModal from '@/views/auth/ForgotPassword.vue'
+import ToastNotification from '@/components/common/ToastNotification.vue'
 
 const router = useRouter()
+const route = useRoute()
+const { addToast } = useToast()
+
 const {
   login,
   loginLoading: isLoading,
   loginErrors: errors,
   loginGeneralError: generalError,
 } = useAuth()
+
+onMounted(() => {
+  if (route.query.error) {
+    addToast({
+      message: route.query.error as string,
+      type: 'error',
+      duration: 5000
+    })
+    
+    // Clean up the URL so it doesn't persist on refresh
+    const query = { ...route.query }
+    delete query.error
+    router.replace({ query })
+  }
+
+  if (route.query.message) {
+    addToast({
+      message: route.query.message as string,
+      type: 'success',
+      duration: 5000
+    })
+
+    const query = { ...route.query }
+    delete query.message
+    router.replace({ query })
+  }
+})
 
 const form = reactive({
   email: '',
@@ -26,16 +58,27 @@ const togglePassword = () => {
 }
 
 const handleLogin = async () => {
+  form.email = form.email.trim()
   const result = await login(form)
 
   if (result.success && result.user) {
     const roleName = result.user.profile?.role?.name || result.user.role || ''
 
     if (['IT Admin', 'Admin', 'Manager', 'Sales', 'Employee', 'Finance Manager', 'Finance Employee', 'Finance', 'Super Admin'].includes(roleName)) {
-      router.push('/home')
+      const redirectUri = router.currentRoute.value.query.redirect_uri
+      if (redirectUri) {
+         let url = redirectUri as string
+         const state = router.currentRoute.value.query.state
+         if (state) {
+            url += (url.includes('?') ? '&' : '?') + 'state=' + encodeURIComponent(state as string)
+         }
+         url += (url.includes('?') ? '&' : '?') + 'message=' + encodeURIComponent('Successfully logged in')
+         window.location.href = url
+      } else {
+         router.push('/home')
+      }
     } else {
       generalError.value = 'Unrecognized role. Please contact IT Support.'
-      localStorage.removeItem('access_token')
       localStorage.removeItem('session_id')
       localStorage.removeItem('user')
     }
@@ -46,6 +89,7 @@ const handleLogin = async () => {
 <template>
   <!-- Two-panel layout -->
   <div class="login-container">
+    <ToastNotification />
 
     <!-- ── LEFT PANEL ── -->
     <div class="left-panel">
@@ -80,6 +124,7 @@ const handleLogin = async () => {
             class="input-field"
             :class="{ 'input-field--error': errors.email }"
             required
+            maxlength="255"
           />
         </div>
         <p v-if="errors.email" class="field-error">{{ errors.email[0] }}</p>
@@ -95,6 +140,7 @@ const handleLogin = async () => {
             class="input-field"
             :class="{ 'input-field--error': errors.password }"
             required
+            maxlength="255"
           />
           <button
             type="button"

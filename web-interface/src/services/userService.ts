@@ -10,6 +10,7 @@ export interface UserListParams {
   role_id?: string
   department_id?: string
   is_active?: string
+  per_page?: number
 }
 
 export const userService = {

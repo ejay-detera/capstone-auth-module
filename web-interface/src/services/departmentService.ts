@@ -5,8 +5,8 @@ import api from '@/lib/api'
 import type { DepartmentForm } from '@/types'
 
 export const departmentService = {
-  fetchDepartments() {
-    return api.get('/api/admin/departments')
+  fetchDepartments(params?: { page?: number; per_page?: number; search?: string }) {
+    return api.get('/api/admin/departments', { params })
   },
 
   createDepartment(payload: Omit<DepartmentForm, 'id'>) {

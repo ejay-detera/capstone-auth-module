@@ -5,8 +5,8 @@ import api from '@/lib/api'
 import type { PermissionForm } from '@/types'
 
 export const permissionService = {
-  fetchPermissions() {
-    return api.get('/api/admin/permissions')
+  fetchPermissions(params?: { page?: number; per_page?: number; search?: string }) {
+    return api.get('/api/admin/permissions', { params })
   },
 
   createPermission(payload: Omit<PermissionForm, 'id'>) {

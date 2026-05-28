@@ -2,7 +2,7 @@
 // Manages department list, CRUD operations, and department-user association
 // with reactive Vue state for the department management page.
 
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { departmentService } from '@/services/departmentService'
 import type { Department, User, PaginationMeta, DepartmentForm } from '@/types'
 
@@ -11,21 +11,26 @@ export function useDepartments() {
   const departments = ref<Department[]>([])
   const loading = ref(true)
   const error = ref('')
-  const searchQuery = ref('')
-
-  const filteredDepartments = computed(() => {
-    if (!Array.isArray(departments.value)) return []
-    return departments.value.filter(d =>
-      d.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      d.description?.toLowerCase().includes(searchQuery.value.toLowerCase())
-    )
+  const pagination = ref<PaginationMeta>({
+    current_page: 1,
+    last_page: 1,
+    total: 0,
+  })
+  const filters = ref({
+    search: '',
+    per_page: 15,
   })
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = async (page = 1) => {
     loading.value = true
     try {
-      const response = await departmentService.fetchDepartments()
-      departments.value = response.data
+      const response = await departmentService.fetchDepartments({ page, ...filters.value })
+      departments.value = response.data.data
+      pagination.value = {
+        current_page: response.data.current_page,
+        last_page: response.data.last_page,
+        total: response.data.total,
+      }
     } catch (err: any) {
       console.error('Failed to fetch departments', err)
       error.value = 'Failed to load departments. Please try again.'
@@ -111,8 +116,8 @@ export function useDepartments() {
     departments,
     loading,
     error,
-    searchQuery,
-    filteredDepartments,
+    pagination,
+    filters,
     fetchDepartments,
     // CRUD
     submitting,

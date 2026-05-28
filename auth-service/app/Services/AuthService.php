@@ -16,21 +16,25 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Laravel\Sanctum\PersonalAccessToken;
+use App\Services\InternalAuditService;
 
 class AuthService
 {
     protected UserRepositoryInterface $userRepo;
     protected SessionRepositoryInterface $sessionRepo;
     protected AuditLogRepositoryInterface $auditLogRepo;
+    protected InternalAuditService $internalAuditService;
 
     public function __construct(
         UserRepositoryInterface $userRepo,
         SessionRepositoryInterface $sessionRepo,
-        AuditLogRepositoryInterface $auditLogRepo
+        AuditLogRepositoryInterface $auditLogRepo,
+        InternalAuditService $internalAuditService
     ) {
         $this->userRepo = $userRepo;
         $this->sessionRepo = $sessionRepo;
         $this->auditLogRepo = $auditLogRepo;
+        $this->internalAuditService = $internalAuditService;
     }
 
     public function attemptLogin(string $email, string $password, string $ip, string $userAgent): array
@@ -85,17 +89,34 @@ class AuthService
                 $ip,
                 $userAgent
             );
+
+            if ($user->profile?->department?->name === 'Finance') {
+                $this->internalAuditService->pushEvent(
+                    'Login Success',
+                    'Session',
+                    $user->id,
+                    [
+                        'email' => $email,
+                        'ip_address' => $ip,
+                        'user_agent' => $userAgent,
+                    ],
+                    $user
+                );
+            }
         });
 
         $permissions = $user->profile?->role?->permissions()
             ?->where('system', 'crms')
             ?->pluck('slug') ?? collect();
 
+        $user->unsetRelation('credentials');
+
         return [
             'access_token' => $accessToken,
             'refresh_token' => $refreshTokenPlain,
             'session_id' => $sessionId,
-            'user' => $user,
+            'user' => $this->formatUserForFrontend($user),
+            'user_model' => $user,
             'permissions' => $permissions
         ];
     }
@@ -140,11 +161,33 @@ class AuthService
         return [
             'access_token' => $accessToken,
             'refresh_token' => $newRefreshTokenPlain,
-            'user' => $user
+            'user' => $this->formatUserForFrontend($user),
+            'user_model' => $user
         ];
     }
 
-    public function logout(?string $refreshTokenPlain, ?string $sessionId, ?User $user): void
+    private function formatUserForFrontend(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'email' => $user->email,
+            'is_active' => (bool) $user->is_active,
+            'profile' => $user->profile ? [
+                'first_name' => $user->profile->first_name,
+                'last_name' => $user->profile->last_name,
+                'phone' => $user->profile->phone,
+                'address' => $user->profile->address,
+                'role' => $user->profile->role ? [
+                    'name' => $user->profile->role->name,
+                ] : null,
+                'department' => $user->profile->department ? [
+                    'name' => $user->profile->department->name,
+                ] : null,
+            ] : null,
+        ];
+    }
+
+    public function logout(?string $refreshTokenPlain, ?string $sessionId, ?User $user, ?string $ip = null, ?string $userAgent = null): void
     {
         if ($refreshTokenPlain) {
             $tokenHash = hash('sha256', $refreshTokenPlain);
@@ -157,6 +200,31 @@ class AuthService
 
         if ($sessionId) {
             $this->sessionRepo->invalidateSession($sessionId);
+        }
+
+        if ($user && $ip && $userAgent) {
+            $this->auditLogRepo->log(
+                $user->id,
+                'Logout',
+                'User logged out: ' . $user->email,
+                $ip,
+                $userAgent
+            );
+
+            $user->load(['profile.department', 'profile.role']);
+            if ($user->profile?->department?->name === 'Finance') {
+                $this->internalAuditService->pushEvent(
+                    'Logout',
+                    'Session',
+                    $user->id,
+                    [
+                        'email' => $user->email,
+                        'ip_address' => $ip,
+                        'user_agent' => $userAgent,
+                    ],
+                    $user
+                );
+            }
         }
     }
 
@@ -311,5 +379,39 @@ class AuthService
                 'permissions' => $user->profile->role->permissions->pluck('slug')
             ]
         ];
+    }
+
+    public function changePassword(User $user, string $currentPassword, string $newPassword, string $ip, string $userAgent): void
+    {
+        $user->load('credentials');
+        if (!Hash::check($currentPassword, $user->credentials->password_hash)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['The provided current password is incorrect.']
+            ]);
+        }
+
+        $this->userRepo->updatePasswordHash(
+            $user->id,
+            Hash::make($newPassword),
+            false
+        );
+
+        $this->auditLogRepo->log(
+            $user->id,
+            'PASSWORD_CHANGED',
+            'User changed password: ' . $user->email,
+            $ip,
+            $userAgent
+        );
+
+        $this->internalAuditService->pushEvent(
+            'password_changed',
+            'User',
+            $user->id,
+            [
+                'email' => $user->email,
+            ],
+            $user
+        );
     }
 }

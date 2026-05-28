@@ -41,6 +41,11 @@ class DepartmentService
         }
     }
 
+    public function getPaginatedDepartments(int $perPage = 15, ?string $search = null): LengthAwarePaginator
+    {
+        return $this->departmentRepo->paginate($perPage, $search);
+    }
+
     public function getDepartmentsForUserCreation(?User $actor): array
     {
         $departments = $this->getAllDepartments();

@@ -57,6 +57,13 @@ class UserSeeder extends Seeder
                 'role_name' => 'Finance Manager',
                 'department_name' => 'Finance'
             ],
+            [
+                'email' => 'employee@example.com',
+                'first_name' => 'General',
+                'last_name' => 'Employee',
+                'role_name' => 'Employee',
+                'department_name' => 'Operations'
+            ],
         ];
 
         foreach ($usersToSeed as $userData) {

@@ -48,10 +48,18 @@ class UserService
 
     public function paginateUsers(array $filters, int $perPage, ?User $actor): LengthAwarePaginator
     {
+        Log::info('paginateUsers called', [
+            'actor_id' => $actor?->id,
+            'has_profile' => $actor?->relationLoaded('profile'),
+            'role_name' => $actor?->profile?->role?->name,
+            'department_name' => $actor?->profile?->department?->name,
+        ]);
+
         if ($actor && $actor->profile?->role?->name !== 'IT Admin' && $actor->profile?->role?->name !== 'Super Admin') {
             if ($actor->profile?->department?->name === 'Finance' && $actor->profile?->role?->name === 'Admin') {
                 $filters['department_limit_id'] = $actor->profile->department_id;
             } else {
+                Log::info('paginateUsers forcing empty', ['actor_role' => $actor?->profile?->role?->name]);
                 $filters['force_empty'] = true;
             }
         }
@@ -237,4 +245,53 @@ class UserService
     {
         return Str::random(8) . 'A1!'; // Meets policy: min 8 chars, 1 uppercase, 1 number, 1 special char
     }
+
+    public function updateProfile(User $user, array $validatedData, string $ip, string $userAgent): array
+    {
+        if (isset($validatedData['email']) && $validatedData['email'] !== $user->email) {
+            $this->userRepo->update($user->id, [
+                'email' => $validatedData['email']
+            ]);
+            $user->email = $validatedData['email'];
+        }
+
+        $this->userRepo->updateProfile($user->id, [
+            'first_name' => $validatedData['first_name'] ?? $user->profile?->first_name,
+            'last_name' => $validatedData['last_name'] ?? $user->profile?->last_name,
+            'phone' => $validatedData['phone'] ?? $user->profile?->phone,
+        ]);
+
+        $user->load(['profile.role', 'profile.department']);
+
+        $this->auditLogRepo->log(
+            $user->id,
+            'PROFILE_UPDATED',
+            'User updated profile: ' . $user->email,
+            $ip,
+            $userAgent
+        );
+
+        $this->internalAuditService->pushEvent(
+            'profile_updated',
+            'User',
+            $user->id,
+            [
+                'email' => $user->email,
+                'first_name' => $user->profile->first_name,
+                'last_name' => $user->profile->last_name,
+            ],
+            $user
+        );
+
+        return [
+            'id' => $user->id,
+            'email' => $user->email,
+            'first_name' => $user->profile->first_name ?? '',
+            'last_name' => $user->profile->last_name ?? '',
+            'role' => $user->profile->role->name ?? '',
+            'department' => $user->profile->department->name ?? '',
+            'phone' => $user->profile->phone ?? '',
+        ];
+    }
+
 }

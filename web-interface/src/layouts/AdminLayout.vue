@@ -55,7 +55,7 @@ onUnmounted(() => {
         <router-link 
           to="/admin" 
           class="flex items-center gap-4 px-5 py-3 rounded-2xl transition-all duration-200 w-full hover:bg-white/10 whitespace-nowrap"
-          active-class="bg-[#3b82f6] shadow-[0_0_15px_rgba(59,130,246,0.5)] !hover:bg-[#3b82f6]"
+          exact-active-class="bg-[#3b82f6] shadow-[0_0_15px_rgba(59,130,246,0.5)] !hover:bg-[#3b82f6]"
         >
           <LayoutDashboard :size="24" class="flex-shrink-0" />
           <span class="font-semibold text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
@@ -124,13 +124,13 @@ onUnmounted(() => {
     <header class="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-md border-b border-gray-200 z-10 px-6 py-4 flex items-center justify-between shadow-sm">
       <!-- Logo & Title -->
       <div class="flex items-center gap-4 pl-24">
-         <div class="flex items-center gap-3">
+         <router-link to="/home" class="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
            <span class="px-3 py-1 bg-gray-100 rounded-lg text-sm border border-gray-300 font-bold text-slate-700">[ LOGO ]</span>
            <div class="hidden md:flex flex-col text-sm leading-tight">
              <span class="text-[#252578] font-semibold">SCIENTIFIC BIOTECH</span>
              <span class="text-xs text-gray-500 font-normal">SPECIALTIES, INC.</span>
            </div>
-         </div>
+         </router-link>
       </div>
 
       <!-- Right Actions -->

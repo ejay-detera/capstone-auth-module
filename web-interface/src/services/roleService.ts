@@ -5,8 +5,8 @@ import api from '@/lib/api'
 import type { RoleForm } from '@/types'
 
 export const roleService = {
-  fetchRoles() {
-    return api.get('/api/admin/roles')
+  fetchRoles(params?: { page?: number; per_page?: number; search?: string }) {
+    return api.get('/api/admin/roles', { params })
   },
 
   createRole(payload: Omit<RoleForm, 'id'>) {

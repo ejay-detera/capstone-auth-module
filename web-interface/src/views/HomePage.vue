@@ -78,8 +78,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { logout } = useAuth()
 
 // Load user from localStorage
 const user = ref(JSON.parse(localStorage.getItem('user') || '{}'))
@@ -177,33 +179,32 @@ const subsystems = computed(() => {
   return base
 })
 
-const handleLogout = () => {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('session_id')
-  localStorage.removeItem('user')
+const handleLogout = async () => {
+  await logout()
   router.push('/')
 }
 
 const openModule = (subsystemTitle: string) => {
+    
     if (subsystemTitle === 'Contract Management') {
       if (userRole.value === 'IT Admin') {
         router.push('/admin')
       } else if (userRole.value === 'Admin') {
-        window.location.href = '/crms/admin/dashboard'
+        window.location.href = `/crms/auth/callback?state=/crms/admin/dashboard`
       } else if (userRole.value === 'Manager' || userRole.value === 'Finance Manager') {
-        window.location.href = '/crms/manager/dashboard'
+        window.location.href = `/crms/auth/callback?state=/crms/manager/dashboard`
       } else if (userRole.value === 'Sales' || userRole.value === 'Employee' || userRole.value === 'Finance Employee' || userRole.value === 'Finance') {
-        window.location.href = '/crms/sales/dashboard'
+        window.location.href = `/crms/auth/callback?state=/crms/sales/dashboard`
       }
     } else if (subsystemTitle === 'Smart Expense Reimbursement') {
       if (userRole.value === 'IT Admin') {
         router.push('/admin')
       } else if (userRole.value === 'Admin') {
-        window.location.href = '/serms/admin/dashboard'
+        window.location.href = `/serms/auth/callback?state=/serms/admin/dashboard&message=Successfully%20logged%20in`
       } else if (userRole.value === 'Manager' || userRole.value === 'Finance Manager') {
-        window.location.href = '/serms/manager/dashboard'
+        window.location.href = `/serms/auth/callback?state=/serms/manager/dashboard&message=Successfully%20logged%20in`
       } else if (userRole.value === 'Sales' || userRole.value === 'Employee' || userRole.value === 'Finance Employee' || userRole.value === 'Finance') {
-        window.location.href = '/serms/sales/dashboard'
+        window.location.href = `/serms/auth/callback?state=/serms/sales/dashboard&message=Successfully%20logged%20in`
       }
     } else if (subsystemTitle === 'User & Access Management') {
     router.push('/admin')

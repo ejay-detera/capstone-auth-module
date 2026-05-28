@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\AuthService;
 use App\Services\RolePermissionService;
+use App\Services\UserService;
 use Illuminate\Http\Request;
 use App\Http\Requests\ResetPasswordRequest;
 use Illuminate\Validation\ValidationException;
@@ -17,22 +18,29 @@ class AuthController extends Controller
 {
     protected AuthService $authService;
     protected RolePermissionService $rolePermissionService;
+    protected UserService $userService;
 
     public function __construct(
         AuthService $authService,
-        RolePermissionService $rolePermissionService
+        RolePermissionService $rolePermissionService,
+        UserService $userService
     ) {
         $this->authService = $authService;
         $this->rolePermissionService = $rolePermissionService;
+        $this->userService = $userService;
     }
 
     public function login(Request $request)
     {
         \Illuminate\Support\Facades\Log::info('Login Attempt Data:', $request->all());
 
+        $request->merge([
+            'email' => trim($request->input('email', '')),
+        ]);
+
         $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string',
+            'email' => 'required|string|email|max:255',
+            'password' => 'required|string|max:255',
         ]);
 
         $result = $this->authService->attemptLogin(
@@ -42,35 +50,22 @@ class AuthController extends Controller
             $request->userAgent()
         );
 
-        $user = $result['user'];
-        if ($user->profile?->department?->name === 'Finance') {
-            $ip = $request->ip();
-            $userAgent = $request->userAgent();
-            $email = $request->email;
-            defer(function () use ($user, $ip, $userAgent, $email) {
-                $firstName = $user->profile->first_name ?? '';
-                $lastName = $user->profile->last_name ?? '';
-                $fullName = trim("{$firstName} {$lastName}");
-                $this->pushToCrmsAuditLog('Login Success', 'Session', $user->id, [
-                    'email' => $email,
-                    'ip_address' => $ip,
-                    'user_agent' => $userAgent,
-                ], [
-                    'user_name' => !empty($fullName) ? $fullName : $user->email,
-                    'user_email' => $user->email,
-                    'user_role' => $user->profile->role->name ?? 'Finance',
-                    'user_department' => $user->profile->department->name ?? 'Finance',
-                ]);
-            });
-        }
+        $user = $result['user_model'];
 
         return response()->json([
-            'access_token' => $result['access_token'],
-            'token_type' => 'Bearer',
-            'session_id' => $result['session_id'],
             'user' => $result['user'],
             'permissions' => $result['permissions']
         ])->cookie(
+            'access_token',
+            $result['access_token'],
+            60 * 24, // 1 day
+            null,
+            null,
+            true, // Secure
+            true, // HttpOnly
+            false,
+            'Strict'
+        )->cookie(
             'refresh_token',
             $result['refresh_token'],
             60 * 24 * 30, // 30 days
@@ -109,10 +104,18 @@ class AuthController extends Controller
             );
 
             return response()->json([
-                'access_token' => $result['access_token'],
-                'token_type' => 'Bearer',
                 'user' => $result['user']
             ])->cookie(
+                'access_token',
+                $result['access_token'],
+                60 * 24, // 1 day
+                null,
+                null,
+                true,
+                true,
+                false,
+                'Strict'
+            )->cookie(
                 'refresh_token',
                 $result['refresh_token'],
                 60 * 24 * 30,
@@ -132,52 +135,24 @@ class AuthController extends Controller
     {
         $refreshTokenPlain = $request->cookie('refresh_token');
         $user = $request->user();
-
-        if ($user) {
-            $user->load(['profile.department', 'profile.role']);
-            $department = $user->profile?->department?->name;
-
-            DB::table('audit_logs')->insert([
-                'actor_id' => $user->id,
-                'action' => 'Logout',
-                'description' => 'User logged out: ' . $user->email,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'action_date' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            if ($department === 'Finance') {
-                $firstName = $user->profile->first_name ?? '';
-                $lastName = $user->profile->last_name ?? '';
-                $fullName = trim("{$firstName} {$lastName}");
-                $this->pushToCrmsAuditLog('Logout', 'Session', $user->id, [
-                    'email' => $user->email,
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                ], [
-                    'user_name' => !empty($fullName) ? $fullName : $user->email,
-                    'user_email' => $user->email,
-                    'user_role' => $user->profile->role->name ?? 'Finance',
-                    'user_department' => $user->profile->department->name ?? 'Finance',
-                ]);
-            }
-        }
-
         $sessionId = $request->cookie('session_id') ?? $request->header('X-Session-ID');
 
-        $this->authService->logout($refreshTokenPlain, $sessionId, $user);
+        $this->authService->logout($refreshTokenPlain, $sessionId, $user, $request->ip(), $request->userAgent());
 
         return response()->json(['message' => 'Successfully logged out.'])
+            ->withoutCookie('access_token')
             ->withoutCookie('refresh_token')
             ->withoutCookie('session_id');
     }
 
     public function forgotPassword(Request $request)
     {
+        $request->merge([
+            'email' => trim($request->input('email', '')),
+        ]);
+
         $request->validate([
-            'email' => 'required|email'
+            'email' => 'required|string|email|max:255'
         ]);
 
         $this->authService->sendPasswordReset($request->email, $request->ip());
@@ -238,108 +213,50 @@ class AuthController extends Controller
 
         // Sanctum uses | to separate ID from token
         $token = $request->token;
+        $token = urldecode($token); // In case it's still URL encoded
+
+        // If the token is an encrypted cookie, decrypt it first
+        try {
+            // Check if it looks like a Laravel encrypted payload (base64 of JSON)
+            if (str_starts_with($token, 'eyJ') || !str_contains($token, '|')) {
+                $decrypted = \Illuminate\Support\Facades\Crypt::decryptString($token);
+                // The decrypted cookie value might have the | character
+                if (str_contains($decrypted, '|')) {
+                    $token = $decrypted;
+                }
+            }
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            // It wasn't encrypted or couldn't be decrypted, proceed with original
+        }
+
         if (str_contains($token, '|')) {
             $token = explode('|', $token)[1];
         }
 
-        $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
-
-        if (!$accessToken || ($accessToken->expires_at && $accessToken->expires_at->isPast())) {
-            return response()->json(['valid' => false, 'message' => 'Invalid or expired token.'], 401);
-        }
-
-        $user = $accessToken->tokenable->load(['profile.role.permissions', 'profile.department']);
-
-        return response()->json([
-            'valid' => true,
-            'user' => [
-                'id' => $user->id,
-                'email' => $user->email,
-                'first_name' => $user->profile->first_name,
-                'last_name' => $user->profile->last_name,
-                'role' => $user->profile->role->name,
-                'department' => $user->profile->department->name,
-                'permissions' => $user->profile->role->permissions->pluck('slug')
-            ]
-        ]);
-    }
-
-    /**
-     * Push audit event to CRMS vendor-management service.
-     */
-    private function pushToCrmsAuditLog(string $action, string $entityType, ?int $userId, array $context, array $userDetails = []): void
-    {
-        $url = env('VENDOR_MANAGEMENT_URL', 'http://vendor-management:8000/api') . '/internal/audit-event';
-        $secret = env('INTERNAL_SERVICE_SECRET');
-
-        if (!$secret) {
-            \Illuminate\Support\Facades\Log::warning('INTERNAL_SERVICE_SECRET is not configured. CRMS Audit Log push skipped.');
-            return;
-        }
-
         try {
-            \Illuminate\Support\Facades\Http::withHeaders([
-                'X-Internal-Secret' => $secret,
-            ])->timeout(2)->connectTimeout(1)->post($url, array_merge([
-                'action' => $action,
-                'entity_type' => $entityType,
-                'entity_id' => 0,
-                'user_id' => $userId,
-                'new_data' => $context,
-            ], $userDetails));
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to push audit event to CRMS: ' . $e->getMessage());
+            $result = $this->authService->verifyAccessToken($token);
+            return response()->json($result);
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            return $e->getResponse();
         }
     }
 
     public function changePassword(Request $request)
     {
         $request->validate([
-            'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|regex:/[A-Z]/|regex:/[0-9]/|regex:/[!@#$%^&*(),.?":{}|<>]/',
+            'current_password' => 'required|string|max:255',
+            'new_password' => 'required|string|min:8|max:255|regex:/[A-Z]/|regex:/[0-9]/|regex:/[!@#$%^&*(),.?":{}|<>]/',
         ], [
             'new_password.regex' => 'The password must contain at least one uppercase letter, one number, and one special character.',
         ]);
 
-        $user = $request->user();
-
-        if (!Hash::check($request->current_password, $user->credentials->password_hash)) {
-            throw ValidationException::withMessages([
-                'current_password' => ['The provided current password is incorrect.']
-            ]);
-        }
-
-        DB::table('user_credentials')
-            ->where('user_id', $user->id)
-            ->update([
-                'password_hash' => Hash::make($request->new_password),
-                'must_change_password' => false,
-                'password_changed_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-        DB::table('audit_logs')->insert([
-            'actor_id' => $user->id,
-            'action' => 'PASSWORD_CHANGED',
-            'description' => 'User changed password: ' . $user->email,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'action_date' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $firstName = $user->profile->first_name ?? '';
-        $lastName = $user->profile->last_name ?? '';
-        $fullName = trim("{$firstName} {$lastName}");
-        $this->pushToCrmsAuditLog('password_changed', 'User', $user->id, [
-            'email' => $user->email,
-        ], [
-            'user_name' => !empty($fullName) ? $fullName : $user->email,
-            'user_email' => $user->email,
-            'user_role' => $user->profile->role->name ?? 'Finance',
-            'user_department' => $user->profile->department->name ?? 'Finance',
-        ]);
+        $this->authService->changePassword(
+            $request->user(),
+            $request->current_password,
+            $request->new_password,
+            $request->ip(),
+            $request->userAgent()
+        );
 
         return response()->json(['message' => 'Password has been successfully updated.']);
     }
@@ -348,65 +265,30 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
+        $request->merge([
+            'email' => trim($request->input('email', '')),
+            'first_name' => trim($request->input('first_name', '')),
+            'last_name' => trim($request->input('last_name', '')),
+            'phone' => trim($request->input('phone', '')),
+        ]);
+
         $request->validate([
             'first_name' => 'required|string|max:50',
             'last_name' => 'required|string|max:50',
             'phone' => 'required|string|max:20',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
         ]);
 
-        if ($request->email !== $user->email) {
-            $user->email = $request->email;
-            $user->save();
-        }
-
-        $user->profile()->updateOrCreate(
-            ['user_id' => $user->id],
-            [
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
-                'phone' => $request->phone,
-            ]
+        $updatedUser = $this->userService->updateProfile(
+            $request->user(),
+            $request->only(['email', 'first_name', 'last_name', 'phone']),
+            $request->ip(),
+            $request->userAgent()
         );
-
-        $user->load(['profile.role', 'profile.department']);
-
-        DB::table('audit_logs')->insert([
-            'actor_id' => $user->id,
-            'action' => 'PROFILE_UPDATED',
-            'description' => 'User updated profile: ' . $user->email,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'action_date' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $firstName = $user->profile->first_name ?? '';
-        $lastName = $user->profile->last_name ?? '';
-        $fullName = trim("{$firstName} {$lastName}");
-        $this->pushToCrmsAuditLog('profile_updated', 'User', $user->id, [
-            'email' => $user->email,
-            'first_name' => $firstName,
-            'last_name' => $lastName,
-        ], [
-            'user_name' => !empty($fullName) ? $fullName : $user->email,
-            'user_email' => $user->email,
-            'user_role' => $user->profile->role->name ?? 'Finance',
-            'user_department' => $user->profile->department->name ?? 'Finance',
-        ]);
 
         return response()->json([
             'message' => 'Profile details updated successfully.',
-            'user' => [
-                'id' => $user->id,
-                'email' => $user->email,
-                'first_name' => $user->profile->first_name ?? '',
-                'last_name' => $user->profile->last_name ?? '',
-                'role' => $user->profile->role->name ?? '',
-                'department' => $user->profile->department->name ?? '',
-                'phone' => $user->profile->phone ?? '',
-            ]
+            'user' => $updatedUser
         ]);
     }
 }
