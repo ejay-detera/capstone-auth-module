@@ -35,7 +35,8 @@ class InternalAuditService
         try {
             Http::withHeaders([
                 'X-Internal-Secret' => $secret,
-            ])->timeout(2)->connectTimeout(1)->post($url, array_merge([
+                'Accept'            => 'application/json',
+            ])->asForm()->timeout(2)->connectTimeout(1)->post($url, array_merge([
                 'action' => $action,
                 'entity_type' => $entityType,
                 'entity_id' => 0,
