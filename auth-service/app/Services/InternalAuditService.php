@@ -10,7 +10,7 @@ class InternalAuditService
 {
     public function pushEvent(string $action, string $entityType, ?int $userId, array $context, ?User $actor = null): void
     {
-        $url = env('VENDOR_MANAGEMENT_URL', 'http://vendor-management:8000/api') . '/internal/audit-event';
+        $url = env('VENDOR_MANAGEMENT_URL', 'http://shared-nginx-proxy:5173/api/contract') . '/internal/audit-event';
         $secret = env('INTERNAL_SERVICE_SECRET');
 
         if (!$secret) {
@@ -36,7 +36,7 @@ class InternalAuditService
             Http::withHeaders([
                 'X-Internal-Secret' => $secret,
                 'Accept'            => 'application/json',
-            ])->asForm()->timeout(2)->connectTimeout(1)->post($url, array_merge([
+            ])->timeout(2)->connectTimeout(1)->post($url, array_merge([
                 'action' => $action,
                 'entity_type' => $entityType,
                 'entity_id' => 0,
