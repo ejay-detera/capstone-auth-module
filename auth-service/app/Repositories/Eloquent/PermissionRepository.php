@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\User;
 use App\Repositories\Contracts\PermissionRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class PermissionRepository implements PermissionRepositoryInterface
 {
@@ -13,6 +14,17 @@ class PermissionRepository implements PermissionRepositoryInterface
     {
         return Permission::all();
     }
+
+    public function paginate(int $perPage = 15, ?string $search = null): LengthAwarePaginator
+    {
+        $query = Permission::query();
+        if ($search) {
+            $query->where('name', 'LIKE', '%' . $search . '%')
+                  ->orWhere('slug', 'LIKE', '%' . $search . '%');
+        }
+        return $query->paginate($perPage);
+    }
+
 
     public function findById(int $id): ?Permission
     {

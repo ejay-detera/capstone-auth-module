@@ -13,16 +13,6 @@ import { encryptPayload } from './encryption'
 
 // Request interceptor for auth tokens and encryption
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
-  const sessionId = localStorage.getItem('session_id')
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-
-  if (sessionId) {
-    config.headers['X-Session-ID'] = sessionId
-  }
 
   // Payload Encryption for POST, PUT, PATCH
   // Skip encryption for auth endpoints — login and refresh must send plain JSON
@@ -47,8 +37,6 @@ let isRefreshing = false
 let pendingRequests: Array<(token: string) => void> = []
 
 function clearAuthAndRedirect() {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('session_id')
   localStorage.removeItem('user')
   window.location.href = '/'
 }
@@ -84,17 +72,13 @@ api.interceptors.response.use(
 
       try {
         // Use a plain axios call (not `api`) to avoid the encryption interceptor
-        const refreshResponse = await axios.post('/api/refresh', {}, { withCredentials: true })
-        const newToken = refreshResponse.data.access_token
+        await axios.post('/api/refresh', {}, { withCredentials: true })
 
-        localStorage.setItem('access_token', newToken)
-
-        // Flush all queued requests with the new token
-        pendingRequests.forEach((cb) => cb(newToken))
+        // Flush all queued requests
+        pendingRequests.forEach((cb) => cb('')) // token not needed manually anymore
         pendingRequests = []
 
         // Retry the original request
-        originalRequest.headers.Authorization = `Bearer ${newToken}`
         return api(originalRequest)
       } catch {
         // Refresh failed — the session is truly expired; send user to login

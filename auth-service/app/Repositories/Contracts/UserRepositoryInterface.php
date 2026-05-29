@@ -22,6 +22,8 @@ interface UserRepositoryInterface
 
     public function createProfile(int $userId, array $data): UserProfile;
 
+    public function updateProfile(int $userId, array $data): UserProfile;
+
     public function createCredentials(int $userId, string $passwordHash, bool $mustChangePassword = true): bool;
 
     public function getUserPermissions(int $userId): array;

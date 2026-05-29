@@ -15,10 +15,13 @@ class DepartmentController extends Controller
         $this->departmentService = $departmentService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         Gate::authorize('manage-departments');
-        return response()->json($this->departmentService->getAllDepartments());
+        return response()->json($this->departmentService->getPaginatedDepartments(
+            (int) $request->input('per_page', 15),
+            $request->input('search')
+        ));
     }
 
     public function store(Request $request)

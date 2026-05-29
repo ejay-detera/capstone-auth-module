@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Http\Request;
 use App\Policies\AdminPolicy;
 
 class AppServiceProvider extends ServiceProvider
@@ -41,6 +44,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('auth', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip() . '|' . $request->input('email'));
+        });
+
         Gate::define('manage-users', [AdminPolicy::class, 'manageUsers']);
         Gate::define('manage-roles', [\App\Policies\RolePolicy::class, 'manage']);
         Gate::define('manage-departments', [\App\Policies\DepartmentPolicy::class, 'manage']);

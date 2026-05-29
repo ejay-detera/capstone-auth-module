@@ -9,6 +9,9 @@ interface RoleRepositoryInterface
 {
     public function all(): array;
 
+    public function paginate(int $perPage = 15, ?string $search = null, ?array $allowedNames = null): LengthAwarePaginator;
+
+
     public function findById(int $id, array $relations = []): ?Role;
 
     public function findByName(string $name): ?Role;

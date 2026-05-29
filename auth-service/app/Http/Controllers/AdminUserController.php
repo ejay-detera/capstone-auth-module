@@ -28,10 +28,13 @@ class AdminUserController extends Controller
     public function index(Request $request)
     {
         $filters = $request->only(['search', 'role_id', 'department_id', 'is_active']);
+        $actor = $request->user();
+        $actor->loadMissing(['profile.role', 'profile.department']);
+        
         return $this->userService->paginateUsers(
             $filters,
             (int) $request->input('per_page', 15),
-            $request->user()
+            $actor
         );
     }
 
@@ -70,13 +73,17 @@ class AdminUserController extends Controller
 
     public function getRoles(Request $request)
     {
-        $roles = $this->rolePermissionService->getRolesForUserCreation($request->user());
+        $actor = $request->user();
+        $actor->loadMissing(['profile.role', 'profile.department']);
+        $roles = $this->rolePermissionService->getRolesForUserCreation($actor);
         return response()->json($roles);
     }
 
     public function getDepartments(Request $request)
     {
-        $departments = $this->departmentService->getDepartmentsForUserCreation($request->user());
+        $actor = $request->user();
+        $actor->loadMissing(['profile.role', 'profile.department']);
+        $departments = $this->departmentService->getDepartmentsForUserCreation($actor);
         return response()->json($departments);
     }
 

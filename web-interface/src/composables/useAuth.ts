@@ -19,10 +19,8 @@ export function useAuth() {
 
     try {
       const response = await authService.login(credentials)
-      const { access_token, user, session_id } = response.data
+      const { user } = response.data
 
-      localStorage.setItem('access_token', access_token)
-      localStorage.setItem('session_id', session_id)
       localStorage.setItem('user', JSON.stringify(user))
 
       return { success: true, user }
@@ -51,8 +49,6 @@ export function useAuth() {
     } catch {
       // Proceed with local cleanup even if the server call fails
     } finally {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('session_id')
       localStorage.removeItem('user')
     }
   }
@@ -62,8 +58,6 @@ export function useAuth() {
    * Used by idle-timeout handlers and route guards that need synchronous cleanup.
    */
   const clearLocalAuth = () => {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('session_id')
     localStorage.removeItem('user')
   }
 

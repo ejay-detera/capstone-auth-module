@@ -89,6 +89,27 @@ class RolePermissionService
         return $roles;
     }
 
+    public function getPaginatedRoles(int $perPage = 15, ?string $search = null, ?User $actor = null): LengthAwarePaginator
+    {
+        $allowedNames = null;
+
+        if ($actor && !in_array($actor->profile?->role?->name, ['IT Admin', 'Super Admin'])) {
+            if ($actor->profile?->department?->name === 'Finance' && $actor->profile?->role?->name === 'Admin') {
+                $allowedNames = ['Finance Manager', 'Finance Employee'];
+            } else {
+                // Return empty paginator
+                return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
+            }
+        }
+
+        return $this->roleRepo->paginate($perPage, $search, $allowedNames);
+    }
+
+    public function getPaginatedPermissions(int $perPage = 15, ?string $search = null): LengthAwarePaginator
+    {
+        return $this->permissionRepo->paginate($perPage, $search);
+    }
+
     public function createRole(array $data, ?User $actor, string $ip, string $userAgent): Role
     {
         if ($actor && !in_array($actor->profile?->role?->name, ['IT Admin', 'Super Admin'])) {

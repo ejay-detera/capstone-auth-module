@@ -2,31 +2,36 @@
 // Manages roles data, CRUD operations, permission sync, and user listing
 // with reactive Vue state for the role management page.
 
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { roleService } from '@/services/roleService'
 import { permissionService } from '@/services/permissionService'
-import type { Role, Permission, User, RoleForm } from '@/types'
+import type { Role, Permission, User, RoleForm, PaginationMeta } from '@/types'
 
 export function useRoles() {
   // ── List State ─────────────────────────────────────────────────────────────
   const roles = ref<Role[]>([])
   const loading = ref(true)
   const error = ref('')
-  const searchQuery = ref('')
-
-  const filteredRoles = computed(() => {
-    if (!Array.isArray(roles.value)) return []
-    return roles.value.filter(r =>
-      r.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      r.description?.toLowerCase().includes(searchQuery.value.toLowerCase())
-    )
+  const pagination = ref<PaginationMeta>({
+    current_page: 1,
+    last_page: 1,
+    total: 0,
+  })
+  const filters = ref({
+    search: '',
+    per_page: 15,
   })
 
-  const fetchRoles = async () => {
+  const fetchRoles = async (page = 1) => {
     loading.value = true
     try {
-      const response = await roleService.fetchRoles()
-      roles.value = response.data
+      const response = await roleService.fetchRoles({ page, ...filters.value })
+      roles.value = response.data.data
+      pagination.value = {
+        current_page: response.data.current_page,
+        last_page: response.data.last_page,
+        total: response.data.total,
+      }
     } catch (err: any) {
       console.error('Failed to fetch roles', err)
       error.value = 'Failed to load roles. Please try again.'
@@ -149,8 +154,8 @@ export function useRoles() {
     roles,
     loading,
     error,
-    searchQuery,
-    filteredRoles,
+    pagination,
+    filters,
     fetchRoles,
     // CRUD
     submitting,

@@ -18,7 +18,11 @@ class RoleController extends Controller
     public function index(Request $request)
     {
         Gate::authorize('manage-roles');
-        return response()->json($this->rolePermissionService->getRolesList($request->user()));
+        return response()->json($this->rolePermissionService->getPaginatedRoles(
+            (int) $request->input('per_page', 15),
+            $request->input('search'),
+            $request->user()
+        ));
     }
 
     public function store(Request $request)

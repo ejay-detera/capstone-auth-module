@@ -9,6 +9,9 @@ interface DepartmentRepositoryInterface
 {
     public function all(): array;
 
+    public function paginate(int $perPage = 15, ?string $search = null): LengthAwarePaginator;
+
+
     public function findById(int $id, array $relations = []): ?Department;
 
     public function findByName(string $name): ?Department;

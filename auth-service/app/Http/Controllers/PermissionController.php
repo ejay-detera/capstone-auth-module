@@ -15,10 +15,13 @@ class PermissionController extends Controller
         $this->rolePermissionService = $rolePermissionService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         Gate::authorize('manage-roles');
-        return response()->json($this->rolePermissionService->getAllPermissions());
+        return response()->json($this->rolePermissionService->getPaginatedPermissions(
+            (int) $request->input('per_page', 15),
+            $request->input('search')
+        ));
     }
 
     public function store(Request $request)

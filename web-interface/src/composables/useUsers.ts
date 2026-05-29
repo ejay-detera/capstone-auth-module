@@ -22,6 +22,7 @@ export function useUsers() {
     department_id: '',
     is_active: '',
     search: '',
+    per_page: 15,
   })
 
   const fetchUsers = async (page = 1) => {

@@ -35,6 +35,7 @@ This document establishes the standards for code quality, scalability, and consi
 ## Project Organization
 
 - Maintain a feature-based directory structure where possible.
+- **Vue Components**: Use a folder-based structure for Vue components in `web-interface/src/components` (e.g., each component and its related assets encapsulated in its own directory) rather than a flat file structure.
 - Ensure every file has a single, well-defined responsibility.
 - Avoid deep directory nesting to maintain codebase navigability.
 

@@ -14,6 +14,19 @@ class RoleRepository implements RoleRepositoryInterface
         return Role::withCount('users')->get()->toArray();
     }
 
+    public function paginate(int $perPage = 15, ?string $search = null, ?array $allowedNames = null): LengthAwarePaginator
+    {
+        $query = Role::withCount('users');
+        if ($search) {
+            $query->where('name', 'LIKE', '%' . $search . '%');
+        }
+        if ($allowedNames !== null) {
+            $query->whereIn('name', $allowedNames);
+        }
+        return $query->paginate($perPage);
+    }
+
+
     public function findById(int $id, array $relations = []): ?Role
     {
         return Role::withCount('users')->with($relations)->find($id);

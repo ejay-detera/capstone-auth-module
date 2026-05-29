@@ -53,6 +53,11 @@ class UserRepository implements UserRepositoryInterface
         return UserProfile::create(array_merge($data, ['user_id' => $userId]));
     }
 
+    public function updateProfile(int $userId, array $data): UserProfile
+    {
+        return UserProfile::updateOrCreate(['user_id' => $userId], $data);
+    }
+
     public function createCredentials(int $userId, string $passwordHash, bool $mustChangePassword = true): bool
     {
         return DB::table('user_credentials')->insert([
@@ -96,7 +101,7 @@ class UserRepository implements UserRepositoryInterface
             $query->filterByDepartment($filters['department_id']);
         }
 
-        if (isset($filters['is_active'])) {
+        if (isset($filters['is_active']) && $filters['is_active'] !== '') {
             $query->filterByStatus($filters['is_active']);
         }
 

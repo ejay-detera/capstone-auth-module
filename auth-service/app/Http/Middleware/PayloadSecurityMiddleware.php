@@ -45,7 +45,11 @@ class PayloadSecurityMiddleware
         // 3. Replace the request input with decrypted data
         $decodedData = json_decode($decryptedBody, true);
         
-        if (json_last_error() === JSON_ERROR_NONE) {
+        if (is_string($decodedData)) {
+            $decodedData = json_decode($decodedData, true);
+        }
+        
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decodedData)) {
             $request->replace($decodedData);
         } else {
             return response()->json([

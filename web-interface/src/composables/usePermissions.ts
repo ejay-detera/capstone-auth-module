@@ -2,10 +2,10 @@
 // Manages permissions list, CRUD operations, and role-permission assignment
 // with reactive Vue state for the permission management page.
 
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { permissionService } from '@/services/permissionService'
 import { userService } from '@/services/userService'
-import type { Permission, Role, PermissionForm } from '@/types'
+import type { Permission, Role, PermissionForm, PaginationMeta } from '@/types'
 
 export function usePermissions() {
   // ── List State ─────────────────────────────────────────────────────────────
@@ -13,22 +13,26 @@ export function usePermissions() {
   const roles = ref<Role[]>([])
   const loading = ref(true)
   const error = ref('')
-  const searchQuery = ref('')
-
-  const filteredPermissions = computed(() => {
-    if (!Array.isArray(permissions.value)) return []
-    return permissions.value.filter(p =>
-      p.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      p.slug.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      p.description?.toLowerCase().includes(searchQuery.value.toLowerCase())
-    )
+  const pagination = ref<PaginationMeta>({
+    current_page: 1,
+    last_page: 1,
+    total: 0,
+  })
+  const filters = ref({
+    search: '',
+    per_page: 15,
   })
 
-  const fetchPermissions = async () => {
+  const fetchPermissions = async (page = 1) => {
     loading.value = true
     try {
-      const response = await permissionService.fetchPermissions()
-      permissions.value = response.data
+      const response = await permissionService.fetchPermissions({ page, ...filters.value })
+      permissions.value = response.data.data
+      pagination.value = {
+        current_page: response.data.current_page,
+        last_page: response.data.last_page,
+        total: response.data.total,
+      }
     } catch (err: any) {
       console.error('Failed to fetch permissions', err)
       error.value = 'Failed to load permissions. Please try again.'
@@ -130,8 +134,8 @@ export function usePermissions() {
     roles,
     loading,
     error,
-    searchQuery,
-    filteredPermissions,
+    pagination,
+    filters,
     fetchPermissions,
     // CRUD
     submitting,

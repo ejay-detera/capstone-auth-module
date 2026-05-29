@@ -14,6 +14,16 @@ class DepartmentRepository implements DepartmentRepositoryInterface
         return Department::withCount('users')->get()->toArray();
     }
 
+    public function paginate(int $perPage = 15, ?string $search = null): LengthAwarePaginator
+    {
+        $query = Department::withCount('users');
+        if ($search) {
+            $query->where('name', 'LIKE', '%' . $search . '%');
+        }
+        return $query->paginate($perPage);
+    }
+
+
     public function findById(int $id, array $relations = []): ?Department
     {
         return Department::withCount('users')->with($relations)->find($id);
