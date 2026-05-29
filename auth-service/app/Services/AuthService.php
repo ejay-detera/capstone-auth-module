@@ -80,30 +80,29 @@ class AuthService
         $this->sessionRepo->createRefreshToken($user->id, $refreshTokenHash, $ip, $userAgent);
         $this->sessionRepo->createSession($user->id, $sessionId, $ip, $userAgent);
 
-        // Log success deferred
-        defer(function () use ($user, $ip, $userAgent, $email) {
-            $this->auditLogRepo->log(
-                $user->id,
-                'LOGIN_SUCCESS',
-                'Successful login for email: ' . $email,
-                $ip,
-                $userAgent
-            );
+        // Log login success synchronously — defer() does not fire reliably under
+        // the PHP built-in CLI server (php artisan serve) used in development.
+        $this->auditLogRepo->log(
+            $user->id,
+            'LOGIN_SUCCESS',
+            'Successful login for email: ' . $email,
+            $ip,
+            $userAgent
+        );
 
-            if ($user->profile?->department?->name === 'Finance') {
-                $this->internalAuditService->pushEvent(
-                    'Login Success',
-                    'Session',
-                    $user->id,
-                    [
-                        'email' => $email,
-                        'ip_address' => $ip,
-                        'user_agent' => $userAgent,
-                    ],
-                    $user
-                );
-            }
-        });
+        if ($user->profile?->department?->name === 'Finance') {
+            $this->internalAuditService->pushEvent(
+                'Login Success',
+                'Session',
+                $user->id,
+                [
+                    'email' => $email,
+                    'ip_address' => $ip,
+                    'user_agent' => $userAgent,
+                ],
+                $user
+            );
+        }
 
         $permissions = $user->profile?->role?->permissions()
             ?->where('system', 'crms')
