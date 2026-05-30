@@ -201,16 +201,19 @@ class AuthService
             $this->sessionRepo->invalidateSession($sessionId);
         }
 
-        if ($user && $ip && $userAgent) {
+        if ($user) {
+            $ipAddress = $ip ?? request()->ip() ?? '';
+            $ua = $userAgent ?? request()->userAgent() ?? '';
+
             $this->auditLogRepo->log(
                 $user->id,
                 'Logout',
                 'User logged out: ' . $user->email,
-                $ip,
-                $userAgent
+                $ipAddress,
+                $ua
             );
 
-            $user->load(['profile.department', 'profile.role']);
+            $user->loadMissing(['profile.department', 'profile.role']);
             if ($user->profile?->department?->name === 'Finance') {
                 $this->internalAuditService->pushEvent(
                     'Logout',
@@ -218,8 +221,8 @@ class AuthService
                     $user->id,
                     [
                         'email' => $user->email,
-                        'ip_address' => $ip,
-                        'user_agent' => $userAgent,
+                        'ip_address' => $ipAddress,
+                        'user_agent' => $ua,
                     ],
                     $user
                 );
